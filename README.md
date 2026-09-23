@@ -1,6 +1,6 @@
 # Predicted Futures Are Not Enough: Learning Executable Goals for Robot Manipulation
 
-[Paper](https://arxiv.org/abs/<ARXIV_ID>) · [Project page](https://<PAGE_URL>) · [Checkpoints](https://huggingface.co/<HF_REPO>)
+[Paper](https://arxiv.org/abs/<ARXIV_ID>) · [Project page](https://claire0730.github.io/executable-goals) · [Checkpoints](https://huggingface.co/Claire0730/executable-goals)
 
 A 3D trace world model predicts one future per episode; the **Entity-Level Goal Readout** turns that prediction into a
 single executable goal in SE(3), and a shared **Pose-Native Executor** runs it closed loop at 20 Hz. Five ManiSkill3
@@ -25,7 +25,7 @@ Docs: [GLOSSARY](docs/GLOSSARY.md) (paper terms to code identifiers) · [REPRODU
 (every reported number, and how to re-run it) · [PROTOCOL](docs/PROTOCOL.md) · [MODULE_MAP](docs/MODULE_MAP.md) ·
 [KNOWN_ISSUES](docs/KNOWN_ISSUES.md)
 
-> `<ARXIV_ID>`, `<PAGE_URL>` and `<HF_REPO>` are placeholders, filled in as each becomes available.
+> The project page and the weights are live; `<ARXIV_ID>` is filled in once the preprint is online.
 
 ## Quick start: reproduce one row of Table II
 
@@ -38,8 +38,8 @@ conda create -n maniskill python=3.11 -y
 conda run -n maniskill pip install -r requirements/maniskill_freeze.txt
 export PM=$(conda run -n maniskill which python)
 
-hf download <HF_REPO> --local-dir checkpoints --include "student/*" --include "teacher/*" --include "SHA256SUMS"      # 12 MB of weights
-hf download <HF_REPO> --local-dir . --include "banks/*"                    # 58 MB of frozen goals
+hf download Claire0730/executable-goals --local-dir checkpoints --include "student/*" --include "teacher/*" --include "SHA256SUMS"      # 12 MB of weights
+hf download Claire0730/executable-goals --local-dir . --include "banks/*"                    # 58 MB of frozen goals
 bash scripts/00_link_checkpoints.sh
 ROW=final bash scripts/verify_main_table.sh 999        # ~10 min on one GPU
 ```
@@ -113,7 +113,7 @@ git clone https://github.com/jayLEE0301/TraceGen third_party/TraceGen
 git -C third_party/TraceGen checkout $(cat third_party/TRACEGEN_COMMIT)
 git -C third_party/TraceGen apply ../tracegen_local.patch
 
-hf download <HF_REPO> --local-dir checkpoints     # now the planners too (~0.95 GB)
+hf download Claire0730/executable-goals --local-dir checkpoints     # now the planners too (~0.95 GB)
 # banks/ as in the quick start; regenerating them instead is 10 -> 20 -> 30
 bash scripts/00_link_checkpoints.sh
 ```
