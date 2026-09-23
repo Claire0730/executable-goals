@@ -1,0 +1,17 @@
+executable-goals -- code and checkpoints for
+"Predicted Futures Are Not Enough: Learning Executable Goals for Robot Manipulation"
+Copyright 2026 the authors
+
+This product includes software developed as part of, or derived from, the following projects:
+
+* TraceGen (https://github.com/jayLEE0301/TraceGen), Apache License 2.0.
+  The planner checkpoints released with this project are fine-tuned from the TraceGen "Generalist" checkpoint and
+  contain only parameters trained by the authors of this project; third_party/tracegen_local.patch is a diff against
+  the upstream repository and is licensed under the same terms.
+* ManiSkill3 (https://github.com/haosulab/ManiSkill), Apache License 2.0 -- simulation environments and demo packages.
+* Frozen encoders, each under its own licence: DINOv3 ViT-L/16 (Meta Platforms, DINOv3 licence), SigLIP (Google,
+  Apache-2.0), T5 (Google, Apache-2.0). Their weights are not redistributed: the released checkpoints do not contain
+  them, and they are downloaded from the Hugging Face Hub at run time when the planner is built.
+* msppo/goal_depth_check.py imports SAM 2 (Meta Platforms, Apache License 2.0) lazily, in a code path reached only by the
+  optional scripts/31_goals_sam2marker.sh (the SAM 2 marker localiser of the PickCube goal bank), which expects a
+  separate SAM 2 environment; neither SAM 2 nor CoTracker3 is redistributed.

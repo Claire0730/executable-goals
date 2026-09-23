@@ -1,0 +1,2480 @@
+{
+  "tag": "mt5_rcfz_gmpc_s0",
+  "arm": "multitask_student",
+  "tasks": [
+    "pickcube",
+    "liftpeg",
+    "peginsert",
+    "stack",
+    "pushcube"
+  ],
+  "teachers": [
+    "pc_v9_nz_s0",
+    "lp_v9_nz_s0",
+    "pi_v9_frame4_s0",
+    "sc_v9_nz03b_s0",
+    "push_v9_nz_s0"
+  ],
+  "lang": "none",
+  "lang_dim": 0,
+  "obs": "student_recon",
+  "pose_obs": true,
+  "point_obs": false,
+  "n_pts": 64,
+  "num_kp": 64,
+  "qdim": 9,
+  "scene_kp": false,
+  "tcp_obs": true,
+  "perception": true,
+  "no_trace": false,
+  "no_scene": true,
+  "goal_rel_se3": false,
+  "rel_token": false,
+  "goal_sig": false,
+  "goal_form": "mean",
+  "goal_k": 4,
+  "psi": true,
+  "psi_token": true,
+  "env_patches": {
+    "wall": true,
+    "scene_gate": false,
+    "camera": {
+      "MSGEN_CAM_EYE_PICKCUBE": "0.574,-0.051,0.378",
+      "MSGEN_CAM_TARGET_PICKCUBE": "-0.4751,0.0562,0.0200",
+      "MSGEN_CAM_FOV_PICKCUBE": "0.754",
+      "MSGEN_CAM_EYE_STACK": "0.574,-0.051,0.378",
+      "MSGEN_CAM_TARGET_STACK": "-0.4751,0.0562,0.0200",
+      "MSGEN_CAM_FOV_STACK": "0.754",
+      "MSGEN_CAM_EYE_PEG": "0.574,-0.051,0.378",
+      "MSGEN_CAM_TARGET_PEG": "-0.4751,0.0562,0.0200",
+      "MSGEN_CAM_FOV_PEG": "0.754",
+      "MSGEN_CAM_EYE_LIFTPEG": "0.574,-0.051,0.378",
+      "MSGEN_CAM_TARGET_LIFTPEG": "-0.4751,0.0562,0.0200",
+      "MSGEN_CAM_FOV_LIFTPEG": "0.754",
+      "MSGEN_CAM_EYE_PUSHCUBE": "0.574,-0.051,0.378",
+      "MSGEN_CAM_TARGET_PUSHCUBE": "-0.4751,0.0562,0.0200",
+      "MSGEN_CAM_FOV_PUSHCUBE": "0.754"
+    }
+  },
+  "goal_err_rel": "stack=results/stack_relbank_realcam_gmapdcc.npz,pickcube=results/pickcube_relbank_realcam_gmappeak.npz,liftpeg=results/liftpeg_relbank_realcam_t2kdcc.npz,peginsert=results/peginsert_relbank_realcam_t2kdcc.npz,pushcube=results/pushcube_relbank_realcam_t2kdcc.npz",
+  "goal_err_scale": "uniform",
+  "goal_delta_train": null,
+  "goal_err_warmup": 0.0,
+  "goal_err_curriculum": 0.0,
+  "seed": 0,
+  "d_model": 128,
+  "layers": 4,
+  "heads": 4,
+  "params": 804002,
+  "kp_mask_ratio": 2,
+  "kp_noise_m": 0.005,
+  "kp_bias_m": 0.0,
+  "num_envs": 320,
+  "envs_per_task": 64,
+  "iterations": 40000,
+  "lr": 0.0003,
+  "best_success": 0.8550000000000001,
+  "history": [
+    {
+      "it": 200,
+      "success": 0.0,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.0
+      },
+      "bc": 0.9242036566138268
+    },
+    {
+      "it": 400,
+      "success": 0.001,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.005
+      },
+      "bc": 0.8985642567276955
+    },
+    {
+      "it": 600,
+      "success": 0.004,
+      "per_task": {
+        "pickcube": 0.005,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.015
+      },
+      "bc": 1.1150489896535873
+    },
+    {
+      "it": 800,
+      "success": 0.0,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.0
+      },
+      "bc": 0.8548314794898033
+    },
+    {
+      "it": 1000,
+      "success": 0.001,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.005
+      },
+      "bc": 0.7662591189146042
+    },
+    {
+      "it": 1200,
+      "success": 0.004,
+      "per_task": {
+        "pickcube": 0.005,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.015
+      },
+      "bc": 0.8217406198382378
+    },
+    {
+      "it": 1400,
+      "success": 0.017,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.085
+      },
+      "bc": 0.8080577850341797
+    },
+    {
+      "it": 1600,
+      "success": 0.006,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.03
+      },
+      "bc": 0.7283519431948662
+    },
+    {
+      "it": 1800,
+      "success": 0.012,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.06
+      },
+      "bc": 0.7058520391583443
+    },
+    {
+      "it": 2000,
+      "success": 0.019,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.095
+      },
+      "bc": 0.6197228655219078
+    },
+    {
+      "it": 2200,
+      "success": 0.09,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.45
+      },
+      "bc": 0.6546310931444168
+    },
+    {
+      "it": 2400,
+      "success": 0.076,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.38
+      },
+      "bc": 0.6438480392098427
+    },
+    {
+      "it": 2600,
+      "success": 0.018000000000000002,
+      "per_task": {
+        "pickcube": 0.005,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.085
+      },
+      "bc": 0.701771154999733
+    },
+    {
+      "it": 2800,
+      "success": 0.056999999999999995,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.285
+      },
+      "bc": 0.6500222533941269
+    },
+    {
+      "it": 3000,
+      "success": 0.064,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.32
+      },
+      "bc": 0.6462317630648613
+    },
+    {
+      "it": 3200,
+      "success": 0.044,
+      "per_task": {
+        "pickcube": 0.005,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.215
+      },
+      "bc": 0.5649488717317581
+    },
+    {
+      "it": 3400,
+      "success": 0.023,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.115
+      },
+      "bc": 0.5626327246427536
+    },
+    {
+      "it": 3600,
+      "success": 0.11100000000000002,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.0,
+        "pushcube": 0.555
+      },
+      "bc": 0.5576032102108002
+    },
+    {
+      "it": 3800,
+      "success": 0.192,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.01,
+        "stack": 0.0,
+        "pushcube": 0.95
+      },
+      "bc": 0.5186435356736183
+    },
+    {
+      "it": 4000,
+      "success": 0.2,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.01,
+        "stack": 0.0,
+        "pushcube": 0.99
+      },
+      "bc": 0.4637179784476757
+    },
+    {
+      "it": 4200,
+      "success": 0.192,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.005,
+        "pushcube": 0.955
+      },
+      "bc": 0.4671017676591873
+    },
+    {
+      "it": 4400,
+      "success": 0.2,
+      "per_task": {
+        "pickcube": 0.0,
+        "liftpeg": 0.0,
+        "peginsert": 0.0,
+        "stack": 0.005,
+        "pushcube": 0.995
+      },
+      "bc": 0.48750853911042213
+    },
+    {
+      "it": 4600,
+      "success": 0.209,
+      "per_task": {
+        "pickcube": 0.04,
+        "liftpeg": 0.0,
+        "peginsert": 0.015,
+        "stack": 0.005,
+        "pushcube": 0.985
+      },
+      "bc": 0.4079691618680954
+    },
+    {
+      "it": 4800,
+      "success": 0.219,
+      "per_task": {
+        "pickcube": 0.055,
+        "liftpeg": 0.0,
+        "peginsert": 0.015,
+        "stack": 0.025,
+        "pushcube": 1.0
+      },
+      "bc": 0.37701669707894325
+    },
+    {
+      "it": 5000,
+      "success": 0.265,
+      "per_task": {
+        "pickcube": 0.3,
+        "liftpeg": 0.0,
+        "peginsert": 0.02,
+        "stack": 0.01,
+        "pushcube": 0.995
+      },
+      "bc": 0.3387410640716553
+    },
+    {
+      "it": 5200,
+      "success": 0.252,
+      "per_task": {
+        "pickcube": 0.195,
+        "liftpeg": 0.005,
+        "peginsert": 0.03,
+        "stack": 0.035,
+        "pushcube": 0.995
+      },
+      "bc": 0.3765414357185364
+    },
+    {
+      "it": 5400,
+      "success": 0.309,
+      "per_task": {
+        "pickcube": 0.34,
+        "liftpeg": 0.025,
+        "peginsert": 0.035,
+        "stack": 0.15,
+        "pushcube": 0.995
+      },
+      "bc": 0.336553156375885
+    },
+    {
+      "it": 5600,
+      "success": 0.35500000000000004,
+      "per_task": {
+        "pickcube": 0.56,
+        "liftpeg": 0.04,
+        "peginsert": 0.035,
+        "stack": 0.145,
+        "pushcube": 0.995
+      },
+      "bc": 0.3200709670782089
+    },
+    {
+      "it": 5800,
+      "success": 0.48,
+      "per_task": {
+        "pickcube": 0.6,
+        "liftpeg": 0.465,
+        "peginsert": 0.04,
+        "stack": 0.295,
+        "pushcube": 1.0
+      },
+      "bc": 0.3164702281355858
+    },
+    {
+      "it": 6000,
+      "success": 0.512,
+      "per_task": {
+        "pickcube": 0.64,
+        "liftpeg": 0.67,
+        "peginsert": 0.07,
+        "stack": 0.18,
+        "pushcube": 1.0
+      },
+      "bc": 0.30971813946962357
+    },
+    {
+      "it": 6200,
+      "success": 0.546,
+      "per_task": {
+        "pickcube": 0.625,
+        "liftpeg": 0.595,
+        "peginsert": 0.115,
+        "stack": 0.395,
+        "pushcube": 1.0
+      },
+      "bc": 0.30243435874581337
+    },
+    {
+      "it": 6400,
+      "success": 0.577,
+      "per_task": {
+        "pickcube": 0.615,
+        "liftpeg": 0.765,
+        "peginsert": 0.125,
+        "stack": 0.385,
+        "pushcube": 0.995
+      },
+      "bc": 0.29221946373581886
+    },
+    {
+      "it": 6600,
+      "success": 0.624,
+      "per_task": {
+        "pickcube": 0.665,
+        "liftpeg": 0.805,
+        "peginsert": 0.14,
+        "stack": 0.52,
+        "pushcube": 0.99
+      },
+      "bc": 0.27808524668216705
+    },
+    {
+      "it": 6800,
+      "success": 0.616,
+      "per_task": {
+        "pickcube": 0.65,
+        "liftpeg": 0.745,
+        "peginsert": 0.145,
+        "stack": 0.54,
+        "pushcube": 1.0
+      },
+      "bc": 0.28897175565361977
+    },
+    {
+      "it": 7000,
+      "success": 0.621,
+      "per_task": {
+        "pickcube": 0.675,
+        "liftpeg": 0.75,
+        "peginsert": 0.155,
+        "stack": 0.525,
+        "pushcube": 1.0
+      },
+      "bc": 0.26506316661834717
+    },
+    {
+      "it": 7200,
+      "success": 0.64,
+      "per_task": {
+        "pickcube": 0.65,
+        "liftpeg": 0.86,
+        "peginsert": 0.165,
+        "stack": 0.53,
+        "pushcube": 0.995
+      },
+      "bc": 0.270502720028162
+    },
+    {
+      "it": 7400,
+      "success": 0.637,
+      "per_task": {
+        "pickcube": 0.695,
+        "liftpeg": 0.815,
+        "peginsert": 0.155,
+        "stack": 0.525,
+        "pushcube": 0.995
+      },
+      "bc": 0.2560061514377594
+    },
+    {
+      "it": 7600,
+      "success": 0.6910000000000001,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.925,
+        "peginsert": 0.2,
+        "stack": 0.545,
+        "pushcube": 1.0
+      },
+      "bc": 0.2457733228802681
+    },
+    {
+      "it": 7800,
+      "success": 0.702,
+      "per_task": {
+        "pickcube": 0.76,
+        "liftpeg": 0.905,
+        "peginsert": 0.23,
+        "stack": 0.615,
+        "pushcube": 1.0
+      },
+      "bc": 0.24566162563860416
+    },
+    {
+      "it": 8000,
+      "success": 0.6839999999999999,
+      "per_task": {
+        "pickcube": 0.735,
+        "liftpeg": 0.885,
+        "peginsert": 0.16,
+        "stack": 0.64,
+        "pushcube": 1.0
+      },
+      "bc": 0.2303504291921854
+    },
+    {
+      "it": 8200,
+      "success": 0.659,
+      "per_task": {
+        "pickcube": 0.705,
+        "liftpeg": 0.79,
+        "peginsert": 0.19,
+        "stack": 0.61,
+        "pushcube": 1.0
+      },
+      "bc": 0.2462946493178606
+    },
+    {
+      "it": 8400,
+      "success": 0.713,
+      "per_task": {
+        "pickcube": 0.715,
+        "liftpeg": 0.845,
+        "peginsert": 0.27,
+        "stack": 0.735,
+        "pushcube": 1.0
+      },
+      "bc": 0.23690594919025898
+    },
+    {
+      "it": 8600,
+      "success": 0.742,
+      "per_task": {
+        "pickcube": 0.715,
+        "liftpeg": 0.92,
+        "peginsert": 0.325,
+        "stack": 0.755,
+        "pushcube": 0.995
+      },
+      "bc": 0.2205185368657112
+    },
+    {
+      "it": 8800,
+      "success": 0.717,
+      "per_task": {
+        "pickcube": 0.695,
+        "liftpeg": 0.915,
+        "peginsert": 0.27,
+        "stack": 0.715,
+        "pushcube": 0.99
+      },
+      "bc": 0.22336890548467636
+    },
+    {
+      "it": 9000,
+      "success": 0.724,
+      "per_task": {
+        "pickcube": 0.76,
+        "liftpeg": 0.93,
+        "peginsert": 0.24,
+        "stack": 0.69,
+        "pushcube": 1.0
+      },
+      "bc": 0.22507106512784958
+    },
+    {
+      "it": 9200,
+      "success": 0.732,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.95,
+        "peginsert": 0.28,
+        "stack": 0.62,
+        "pushcube": 1.0
+      },
+      "bc": 0.22623202949762344
+    },
+    {
+      "it": 9400,
+      "success": 0.728,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.84,
+        "peginsert": 0.35,
+        "stack": 0.68,
+        "pushcube": 1.0
+      },
+      "bc": 0.22282385639846325
+    },
+    {
+      "it": 9600,
+      "success": 0.736,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.92,
+        "peginsert": 0.27,
+        "stack": 0.675,
+        "pushcube": 1.0
+      },
+      "bc": 0.22232978977262974
+    },
+    {
+      "it": 9800,
+      "success": 0.751,
+      "per_task": {
+        "pickcube": 0.775,
+        "liftpeg": 0.92,
+        "peginsert": 0.345,
+        "stack": 0.715,
+        "pushcube": 1.0
+      },
+      "bc": 0.21546038798987865
+    },
+    {
+      "it": 10000,
+      "success": 0.756,
+      "per_task": {
+        "pickcube": 0.745,
+        "liftpeg": 0.93,
+        "peginsert": 0.32,
+        "stack": 0.785,
+        "pushcube": 1.0
+      },
+      "bc": 0.2142394706606865
+    },
+    {
+      "it": 10200,
+      "success": 0.7729999999999999,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.935,
+        "peginsert": 0.355,
+        "stack": 0.775,
+        "pushcube": 1.0
+      },
+      "bc": 0.20599049516022205
+    },
+    {
+      "it": 10400,
+      "success": 0.7769999999999999,
+      "per_task": {
+        "pickcube": 0.745,
+        "liftpeg": 0.925,
+        "peginsert": 0.415,
+        "stack": 0.8,
+        "pushcube": 1.0
+      },
+      "bc": 0.21232317946851254
+    },
+    {
+      "it": 10600,
+      "success": 0.759,
+      "per_task": {
+        "pickcube": 0.765,
+        "liftpeg": 0.96,
+        "peginsert": 0.365,
+        "stack": 0.71,
+        "pushcube": 0.995
+      },
+      "bc": 0.20772676542401314
+    },
+    {
+      "it": 10800,
+      "success": 0.7609999999999999,
+      "per_task": {
+        "pickcube": 0.76,
+        "liftpeg": 0.83,
+        "peginsert": 0.435,
+        "stack": 0.78,
+        "pushcube": 1.0
+      },
+      "bc": 0.21126408129930496
+    },
+    {
+      "it": 11000,
+      "success": 0.754,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.885,
+        "peginsert": 0.35,
+        "stack": 0.75,
+        "pushcube": 1.0
+      },
+      "bc": 0.21137701533734798
+    },
+    {
+      "it": 11200,
+      "success": 0.766,
+      "per_task": {
+        "pickcube": 0.82,
+        "liftpeg": 0.9,
+        "peginsert": 0.365,
+        "stack": 0.745,
+        "pushcube": 1.0
+      },
+      "bc": 0.20216434262692928
+    },
+    {
+      "it": 11400,
+      "success": 0.787,
+      "per_task": {
+        "pickcube": 0.825,
+        "liftpeg": 0.93,
+        "peginsert": 0.365,
+        "stack": 0.815,
+        "pushcube": 1.0
+      },
+      "bc": 0.2001787032932043
+    },
+    {
+      "it": 11600,
+      "success": 0.78,
+      "per_task": {
+        "pickcube": 0.765,
+        "liftpeg": 0.925,
+        "peginsert": 0.43,
+        "stack": 0.78,
+        "pushcube": 1.0
+      },
+      "bc": 0.2099431212991476
+    },
+    {
+      "it": 11800,
+      "success": 0.765,
+      "per_task": {
+        "pickcube": 0.795,
+        "liftpeg": 0.915,
+        "peginsert": 0.405,
+        "stack": 0.715,
+        "pushcube": 0.995
+      },
+      "bc": 0.2099169883877039
+    },
+    {
+      "it": 12000,
+      "success": 0.743,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.895,
+        "peginsert": 0.33,
+        "stack": 0.7,
+        "pushcube": 1.0
+      },
+      "bc": 0.20611613988876343
+    },
+    {
+      "it": 12200,
+      "success": 0.7790000000000001,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.925,
+        "peginsert": 0.445,
+        "stack": 0.765,
+        "pushcube": 0.99
+      },
+      "bc": 0.19413563795387745
+    },
+    {
+      "it": 12400,
+      "success": 0.784,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.9,
+        "peginsert": 0.465,
+        "stack": 0.765,
+        "pushcube": 1.0
+      },
+      "bc": 0.198744660243392
+    },
+    {
+      "it": 12600,
+      "success": 0.765,
+      "per_task": {
+        "pickcube": 0.78,
+        "liftpeg": 0.92,
+        "peginsert": 0.425,
+        "stack": 0.7,
+        "pushcube": 1.0
+      },
+      "bc": 0.20761826261878014
+    },
+    {
+      "it": 12800,
+      "success": 0.765,
+      "per_task": {
+        "pickcube": 0.76,
+        "liftpeg": 0.905,
+        "peginsert": 0.405,
+        "stack": 0.76,
+        "pushcube": 0.995
+      },
+      "bc": 0.201006181538105
+    },
+    {
+      "it": 13000,
+      "success": 0.8029999999999999,
+      "per_task": {
+        "pickcube": 0.83,
+        "liftpeg": 0.945,
+        "peginsert": 0.44,
+        "stack": 0.8,
+        "pushcube": 1.0
+      },
+      "bc": 0.1973175872117281
+    },
+    {
+      "it": 13200,
+      "success": 0.776,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.915,
+        "peginsert": 0.37,
+        "stack": 0.785,
+        "pushcube": 0.995
+      },
+      "bc": 0.20326471328735352
+    },
+    {
+      "it": 13400,
+      "success": 0.777,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.87,
+        "peginsert": 0.45,
+        "stack": 0.795,
+        "pushcube": 1.0
+      },
+      "bc": 0.19799011386930943
+    },
+    {
+      "it": 13600,
+      "success": 0.786,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.94,
+        "peginsert": 0.435,
+        "stack": 0.77,
+        "pushcube": 1.0
+      },
+      "bc": 0.19619080424308777
+    },
+    {
+      "it": 13800,
+      "success": 0.784,
+      "per_task": {
+        "pickcube": 0.775,
+        "liftpeg": 0.905,
+        "peginsert": 0.425,
+        "stack": 0.825,
+        "pushcube": 0.99
+      },
+      "bc": 0.197976216673851
+    },
+    {
+      "it": 14000,
+      "success": 0.791,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.895,
+        "peginsert": 0.52,
+        "stack": 0.755,
+        "pushcube": 1.0
+      },
+      "bc": 0.20102372765541077
+    },
+    {
+      "it": 14200,
+      "success": 0.8019999999999999,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.96,
+        "peginsert": 0.46,
+        "stack": 0.805,
+        "pushcube": 0.995
+      },
+      "bc": 0.18951782397925854
+    },
+    {
+      "it": 14400,
+      "success": 0.794,
+      "per_task": {
+        "pickcube": 0.75,
+        "liftpeg": 0.915,
+        "peginsert": 0.49,
+        "stack": 0.815,
+        "pushcube": 1.0
+      },
+      "bc": 0.19606639631092548
+    },
+    {
+      "it": 14600,
+      "success": 0.798,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.95,
+        "peginsert": 0.475,
+        "stack": 0.765,
+        "pushcube": 1.0
+      },
+      "bc": 0.20007125660777092
+    },
+    {
+      "it": 14800,
+      "success": 0.79,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.95,
+        "peginsert": 0.465,
+        "stack": 0.745,
+        "pushcube": 1.0
+      },
+      "bc": 0.20203788951039314
+    },
+    {
+      "it": 15000,
+      "success": 0.764,
+      "per_task": {
+        "pickcube": 0.75,
+        "liftpeg": 0.89,
+        "peginsert": 0.44,
+        "stack": 0.745,
+        "pushcube": 0.995
+      },
+      "bc": 0.2010444775223732
+    },
+    {
+      "it": 15200,
+      "success": 0.8099999999999999,
+      "per_task": {
+        "pickcube": 0.78,
+        "liftpeg": 0.975,
+        "peginsert": 0.495,
+        "stack": 0.8,
+        "pushcube": 1.0
+      },
+      "bc": 0.19142670184373856
+    },
+    {
+      "it": 15400,
+      "success": 0.777,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.92,
+        "peginsert": 0.43,
+        "stack": 0.765,
+        "pushcube": 1.0
+      },
+      "bc": 0.19468894600868225
+    },
+    {
+      "it": 15600,
+      "success": 0.7819999999999999,
+      "per_task": {
+        "pickcube": 0.73,
+        "liftpeg": 0.965,
+        "peginsert": 0.42,
+        "stack": 0.795,
+        "pushcube": 1.0
+      },
+      "bc": 0.1914225071668625
+    },
+    {
+      "it": 15800,
+      "success": 0.771,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.96,
+        "peginsert": 0.41,
+        "stack": 0.715,
+        "pushcube": 1.0
+      },
+      "bc": 0.18846052139997482
+    },
+    {
+      "it": 16000,
+      "success": 0.8149999999999998,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.945,
+        "peginsert": 0.46,
+        "stack": 0.86,
+        "pushcube": 1.0
+      },
+      "bc": 0.18396453000605106
+    },
+    {
+      "it": 16200,
+      "success": 0.7989999999999999,
+      "per_task": {
+        "pickcube": 0.78,
+        "liftpeg": 0.955,
+        "peginsert": 0.44,
+        "stack": 0.82,
+        "pushcube": 1.0
+      },
+      "bc": 0.1856357678771019
+    },
+    {
+      "it": 16400,
+      "success": 0.768,
+      "per_task": {
+        "pickcube": 0.76,
+        "liftpeg": 0.955,
+        "peginsert": 0.415,
+        "stack": 0.71,
+        "pushcube": 1.0
+      },
+      "bc": 0.18339041993021965
+    },
+    {
+      "it": 16600,
+      "success": 0.8029999999999999,
+      "per_task": {
+        "pickcube": 0.795,
+        "liftpeg": 0.96,
+        "peginsert": 0.46,
+        "stack": 0.8,
+        "pushcube": 1.0
+      },
+      "bc": 0.1878954153507948
+    },
+    {
+      "it": 16800,
+      "success": 0.807,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.955,
+        "peginsert": 0.495,
+        "stack": 0.795,
+        "pushcube": 1.0
+      },
+      "bc": 0.18222020752727985
+    },
+    {
+      "it": 17000,
+      "success": 0.8109999999999999,
+      "per_task": {
+        "pickcube": 0.805,
+        "liftpeg": 0.96,
+        "peginsert": 0.475,
+        "stack": 0.815,
+        "pushcube": 1.0
+      },
+      "bc": 0.18522643856704235
+    },
+    {
+      "it": 17200,
+      "success": 0.8,
+      "per_task": {
+        "pickcube": 0.765,
+        "liftpeg": 0.93,
+        "peginsert": 0.485,
+        "stack": 0.82,
+        "pushcube": 1.0
+      },
+      "bc": 0.189815241843462
+    },
+    {
+      "it": 17400,
+      "success": 0.7959999999999999,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.925,
+        "peginsert": 0.445,
+        "stack": 0.825,
+        "pushcube": 1.0
+      },
+      "bc": 0.18708375096321106
+    },
+    {
+      "it": 17600,
+      "success": 0.805,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.955,
+        "peginsert": 0.5,
+        "stack": 0.8,
+        "pushcube": 1.0
+      },
+      "bc": 0.18754106760025024
+    },
+    {
+      "it": 17800,
+      "success": 0.796,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.955,
+        "peginsert": 0.44,
+        "stack": 0.795,
+        "pushcube": 1.0
+      },
+      "bc": 0.18131918273866177
+    },
+    {
+      "it": 18000,
+      "success": 0.805,
+      "per_task": {
+        "pickcube": 0.78,
+        "liftpeg": 0.985,
+        "peginsert": 0.47,
+        "stack": 0.79,
+        "pushcube": 1.0
+      },
+      "bc": 0.18437921442091465
+    },
+    {
+      "it": 18200,
+      "success": 0.8170000000000002,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.93,
+        "peginsert": 0.555,
+        "stack": 0.81,
+        "pushcube": 1.0
+      },
+      "bc": 0.180968152359128
+    },
+    {
+      "it": 18400,
+      "success": 0.8059999999999998,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.94,
+        "peginsert": 0.445,
+        "stack": 0.875,
+        "pushcube": 1.0
+      },
+      "bc": 0.18362458795309067
+    },
+    {
+      "it": 18600,
+      "success": 0.784,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.91,
+        "peginsert": 0.42,
+        "stack": 0.81,
+        "pushcube": 0.995
+      },
+      "bc": 0.18689578771591187
+    },
+    {
+      "it": 18800,
+      "success": 0.7979999999999999,
+      "per_task": {
+        "pickcube": 0.78,
+        "liftpeg": 0.93,
+        "peginsert": 0.46,
+        "stack": 0.82,
+        "pushcube": 1.0
+      },
+      "bc": 0.18163283914327621
+    },
+    {
+      "it": 19000,
+      "success": 0.8149999999999998,
+      "per_task": {
+        "pickcube": 0.85,
+        "liftpeg": 0.97,
+        "peginsert": 0.435,
+        "stack": 0.82,
+        "pushcube": 1.0
+      },
+      "bc": 0.17974820546805859
+    },
+    {
+      "it": 19200,
+      "success": 0.8320000000000001,
+      "per_task": {
+        "pickcube": 0.755,
+        "liftpeg": 0.94,
+        "peginsert": 0.595,
+        "stack": 0.875,
+        "pushcube": 0.995
+      },
+      "bc": 0.19477912783622742
+    },
+    {
+      "it": 19400,
+      "success": 0.805,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.955,
+        "peginsert": 0.455,
+        "stack": 0.815,
+        "pushcube": 1.0
+      },
+      "bc": 0.18113793805241585
+    },
+    {
+      "it": 19600,
+      "success": 0.82,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.98,
+        "peginsert": 0.52,
+        "stack": 0.815,
+        "pushcube": 1.0
+      },
+      "bc": 0.18436377681791782
+    },
+    {
+      "it": 19800,
+      "success": 0.834,
+      "per_task": {
+        "pickcube": 0.825,
+        "liftpeg": 0.96,
+        "peginsert": 0.555,
+        "stack": 0.835,
+        "pushcube": 0.995
+      },
+      "bc": 0.17441867478191853
+    },
+    {
+      "it": 20000,
+      "success": 0.8300000000000001,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.96,
+        "peginsert": 0.53,
+        "stack": 0.86,
+        "pushcube": 1.0
+      },
+      "bc": 0.17297466099262238
+    },
+    {
+      "it": 20200,
+      "success": 0.8029999999999999,
+      "per_task": {
+        "pickcube": 0.765,
+        "liftpeg": 0.96,
+        "peginsert": 0.475,
+        "stack": 0.82,
+        "pushcube": 0.995
+      },
+      "bc": 0.18406430259346962
+    },
+    {
+      "it": 20400,
+      "success": 0.8280000000000001,
+      "per_task": {
+        "pickcube": 0.835,
+        "liftpeg": 0.93,
+        "peginsert": 0.55,
+        "stack": 0.83,
+        "pushcube": 0.995
+      },
+      "bc": 0.18861388973891735
+    },
+    {
+      "it": 20600,
+      "success": 0.828,
+      "per_task": {
+        "pickcube": 0.86,
+        "liftpeg": 0.955,
+        "peginsert": 0.525,
+        "stack": 0.805,
+        "pushcube": 0.995
+      },
+      "bc": 0.17926443740725517
+    },
+    {
+      "it": 20800,
+      "success": 0.796,
+      "per_task": {
+        "pickcube": 0.83,
+        "liftpeg": 0.935,
+        "peginsert": 0.43,
+        "stack": 0.785,
+        "pushcube": 1.0
+      },
+      "bc": 0.17517046257853508
+    },
+    {
+      "it": 21000,
+      "success": 0.789,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.875,
+        "peginsert": 0.47,
+        "stack": 0.79,
+        "pushcube": 1.0
+      },
+      "bc": 0.18307080678641796
+    },
+    {
+      "it": 21200,
+      "success": 0.7949999999999999,
+      "per_task": {
+        "pickcube": 0.83,
+        "liftpeg": 0.825,
+        "peginsert": 0.48,
+        "stack": 0.845,
+        "pushcube": 0.995
+      },
+      "bc": 0.17506087571382523
+    },
+    {
+      "it": 21400,
+      "success": 0.8440000000000001,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.975,
+        "peginsert": 0.555,
+        "stack": 0.89,
+        "pushcube": 1.0
+      },
+      "bc": 0.17165538482367992
+    },
+    {
+      "it": 21600,
+      "success": 0.8320000000000001,
+      "per_task": {
+        "pickcube": 0.835,
+        "liftpeg": 0.96,
+        "peginsert": 0.535,
+        "stack": 0.835,
+        "pushcube": 0.995
+      },
+      "bc": 0.1785384602844715
+    },
+    {
+      "it": 21800,
+      "success": 0.8160000000000001,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.945,
+        "peginsert": 0.505,
+        "stack": 0.845,
+        "pushcube": 0.995
+      },
+      "bc": 0.1836328450590372
+    },
+    {
+      "it": 22000,
+      "success": 0.818,
+      "per_task": {
+        "pickcube": 0.84,
+        "liftpeg": 0.955,
+        "peginsert": 0.49,
+        "stack": 0.805,
+        "pushcube": 1.0
+      },
+      "bc": 0.18295994028449059
+    },
+    {
+      "it": 22200,
+      "success": 0.828,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.945,
+        "peginsert": 0.57,
+        "stack": 0.815,
+        "pushcube": 0.995
+      },
+      "bc": 0.1773649211972952
+    },
+    {
+      "it": 22400,
+      "success": 0.827,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.895,
+        "peginsert": 0.6,
+        "stack": 0.825,
+        "pushcube": 1.0
+      },
+      "bc": 0.18428627774119377
+    },
+    {
+      "it": 22600,
+      "success": 0.808,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.95,
+        "peginsert": 0.545,
+        "stack": 0.735,
+        "pushcube": 1.0
+      },
+      "bc": 0.168326023966074
+    },
+    {
+      "it": 22800,
+      "success": 0.778,
+      "per_task": {
+        "pickcube": 0.75,
+        "liftpeg": 0.915,
+        "peginsert": 0.43,
+        "stack": 0.795,
+        "pushcube": 1.0
+      },
+      "bc": 0.1827804036438465
+    },
+    {
+      "it": 23000,
+      "success": 0.795,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.88,
+        "peginsert": 0.45,
+        "stack": 0.835,
+        "pushcube": 1.0
+      },
+      "bc": 0.17520775645971298
+    },
+    {
+      "it": 23200,
+      "success": 0.825,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.97,
+        "peginsert": 0.51,
+        "stack": 0.83,
+        "pushcube": 1.0
+      },
+      "bc": 0.17498203739523888
+    },
+    {
+      "it": 23400,
+      "success": 0.8190000000000002,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.915,
+        "peginsert": 0.53,
+        "stack": 0.86,
+        "pushcube": 1.0
+      },
+      "bc": 0.18113883025944233
+    },
+    {
+      "it": 23600,
+      "success": 0.825,
+      "per_task": {
+        "pickcube": 0.775,
+        "liftpeg": 0.95,
+        "peginsert": 0.515,
+        "stack": 0.885,
+        "pushcube": 1.0
+      },
+      "bc": 0.16750917956233025
+    },
+    {
+      "it": 23800,
+      "success": 0.8109999999999999,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.93,
+        "peginsert": 0.475,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.17178414575755596
+    },
+    {
+      "it": 24000,
+      "success": 0.8140000000000001,
+      "per_task": {
+        "pickcube": 0.83,
+        "liftpeg": 0.965,
+        "peginsert": 0.495,
+        "stack": 0.78,
+        "pushcube": 1.0
+      },
+      "bc": 0.18061944283545017
+    },
+    {
+      "it": 24200,
+      "success": 0.813,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.955,
+        "peginsert": 0.465,
+        "stack": 0.845,
+        "pushcube": 1.0
+      },
+      "bc": 0.17557363957166672
+    },
+    {
+      "it": 24400,
+      "success": 0.826,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.955,
+        "peginsert": 0.53,
+        "stack": 0.845,
+        "pushcube": 1.0
+      },
+      "bc": 0.17636375315487385
+    },
+    {
+      "it": 24600,
+      "success": 0.8150000000000001,
+      "per_task": {
+        "pickcube": 0.83,
+        "liftpeg": 0.915,
+        "peginsert": 0.49,
+        "stack": 0.84,
+        "pushcube": 1.0
+      },
+      "bc": 0.18687108159065247
+    },
+    {
+      "it": 24800,
+      "success": 0.833,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.96,
+        "peginsert": 0.475,
+        "stack": 0.92,
+        "pushcube": 1.0
+      },
+      "bc": 0.1647340301424265
+    },
+    {
+      "it": 25000,
+      "success": 0.807,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.98,
+        "peginsert": 0.495,
+        "stack": 0.765,
+        "pushcube": 0.985
+      },
+      "bc": 0.17514841631054878
+    },
+    {
+      "it": 25200,
+      "success": 0.8109999999999999,
+      "per_task": {
+        "pickcube": 0.82,
+        "liftpeg": 0.94,
+        "peginsert": 0.48,
+        "stack": 0.815,
+        "pushcube": 1.0
+      },
+      "bc": 0.17304204031825066
+    },
+    {
+      "it": 25400,
+      "success": 0.817,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.945,
+        "peginsert": 0.525,
+        "stack": 0.825,
+        "pushcube": 1.0
+      },
+      "bc": 0.17516612447798252
+    },
+    {
+      "it": 25600,
+      "success": 0.825,
+      "per_task": {
+        "pickcube": 0.765,
+        "liftpeg": 0.945,
+        "peginsert": 0.51,
+        "stack": 0.905,
+        "pushcube": 1.0
+      },
+      "bc": 0.16345292516052723
+    },
+    {
+      "it": 25800,
+      "success": 0.8370000000000001,
+      "per_task": {
+        "pickcube": 0.845,
+        "liftpeg": 0.95,
+        "peginsert": 0.5,
+        "stack": 0.89,
+        "pushcube": 1.0
+      },
+      "bc": 0.16807197965681553
+    },
+    {
+      "it": 26000,
+      "success": 0.8099999999999999,
+      "per_task": {
+        "pickcube": 0.76,
+        "liftpeg": 0.97,
+        "peginsert": 0.465,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.17392277345061302
+    },
+    {
+      "it": 26200,
+      "success": 0.8320000000000001,
+      "per_task": {
+        "pickcube": 0.805,
+        "liftpeg": 0.955,
+        "peginsert": 0.525,
+        "stack": 0.88,
+        "pushcube": 0.995
+      },
+      "bc": 0.17216620407998562
+    },
+    {
+      "it": 26400,
+      "success": 0.82,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.915,
+        "peginsert": 0.585,
+        "stack": 0.785,
+        "pushcube": 1.0
+      },
+      "bc": 0.1729508489370346
+    },
+    {
+      "it": 26600,
+      "success": 0.8309999999999998,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.98,
+        "peginsert": 0.51,
+        "stack": 0.895,
+        "pushcube": 1.0
+      },
+      "bc": 0.16288996674120426
+    },
+    {
+      "it": 26800,
+      "success": 0.8160000000000001,
+      "per_task": {
+        "pickcube": 0.82,
+        "liftpeg": 0.895,
+        "peginsert": 0.515,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.17334960214793682
+    },
+    {
+      "it": 27000,
+      "success": 0.8160000000000001,
+      "per_task": {
+        "pickcube": 0.775,
+        "liftpeg": 0.935,
+        "peginsert": 0.52,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.1624406110495329
+    },
+    {
+      "it": 27200,
+      "success": 0.8470000000000001,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.96,
+        "peginsert": 0.595,
+        "stack": 0.875,
+        "pushcube": 0.99
+      },
+      "bc": 0.1796889528632164
+    },
+    {
+      "it": 27400,
+      "success": 0.8219999999999998,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.97,
+        "peginsert": 0.51,
+        "stack": 0.84,
+        "pushcube": 1.0
+      },
+      "bc": 0.17662681825459003
+    },
+    {
+      "it": 27600,
+      "success": 0.825,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.945,
+        "peginsert": 0.53,
+        "stack": 0.845,
+        "pushcube": 0.995
+      },
+      "bc": 0.17267117276787758
+    },
+    {
+      "it": 27800,
+      "success": 0.827,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.945,
+        "peginsert": 0.575,
+        "stack": 0.825,
+        "pushcube": 1.0
+      },
+      "bc": 0.17626206576824188
+    },
+    {
+      "it": 28000,
+      "success": 0.8390000000000001,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.96,
+        "peginsert": 0.555,
+        "stack": 0.87,
+        "pushcube": 1.0
+      },
+      "bc": 0.17014699056744576
+    },
+    {
+      "it": 28200,
+      "success": 0.8379999999999999,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.965,
+        "peginsert": 0.53,
+        "stack": 0.88,
+        "pushcube": 1.0
+      },
+      "bc": 0.17391955107450485
+    },
+    {
+      "it": 28400,
+      "success": 0.829,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.98,
+        "peginsert": 0.53,
+        "stack": 0.835,
+        "pushcube": 1.0
+      },
+      "bc": 0.18109825067222118
+    },
+    {
+      "it": 28600,
+      "success": 0.8089999999999999,
+      "per_task": {
+        "pickcube": 0.745,
+        "liftpeg": 0.965,
+        "peginsert": 0.485,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.17067724093794823
+    },
+    {
+      "it": 28800,
+      "success": 0.8399999999999999,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.96,
+        "peginsert": 0.57,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.16354680620133877
+    },
+    {
+      "it": 29000,
+      "success": 0.8530000000000001,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.97,
+        "peginsert": 0.645,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.17051296681165695
+    },
+    {
+      "it": 29200,
+      "success": 0.836,
+      "per_task": {
+        "pickcube": 0.84,
+        "liftpeg": 0.965,
+        "peginsert": 0.53,
+        "stack": 0.845,
+        "pushcube": 1.0
+      },
+      "bc": 0.17080379091203213
+    },
+    {
+      "it": 29400,
+      "success": 0.8089999999999999,
+      "per_task": {
+        "pickcube": 0.84,
+        "liftpeg": 0.93,
+        "peginsert": 0.435,
+        "stack": 0.84,
+        "pushcube": 1.0
+      },
+      "bc": 0.16351697593927383
+    },
+    {
+      "it": 29600,
+      "success": 0.8219999999999998,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.965,
+        "peginsert": 0.455,
+        "stack": 0.88,
+        "pushcube": 1.0
+      },
+      "bc": 0.16441131569445133
+    },
+    {
+      "it": 29800,
+      "success": 0.8210000000000001,
+      "per_task": {
+        "pickcube": 0.825,
+        "liftpeg": 0.925,
+        "peginsert": 0.525,
+        "stack": 0.83,
+        "pushcube": 1.0
+      },
+      "bc": 0.16677778586745262
+    },
+    {
+      "it": 30000,
+      "success": 0.8140000000000001,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.94,
+        "peginsert": 0.505,
+        "stack": 0.81,
+        "pushcube": 1.0
+      },
+      "bc": 0.16520779579877853
+    },
+    {
+      "it": 30200,
+      "success": 0.8160000000000001,
+      "per_task": {
+        "pickcube": 0.78,
+        "liftpeg": 0.955,
+        "peginsert": 0.545,
+        "stack": 0.8,
+        "pushcube": 1.0
+      },
+      "bc": 0.17539126798510551
+    },
+    {
+      "it": 30400,
+      "success": 0.835,
+      "per_task": {
+        "pickcube": 0.87,
+        "liftpeg": 0.95,
+        "peginsert": 0.485,
+        "stack": 0.87,
+        "pushcube": 1.0
+      },
+      "bc": 0.17410175874829292
+    },
+    {
+      "it": 30600,
+      "success": 0.821,
+      "per_task": {
+        "pickcube": 0.845,
+        "liftpeg": 0.96,
+        "peginsert": 0.47,
+        "stack": 0.835,
+        "pushcube": 0.995
+      },
+      "bc": 0.1878561768680811
+    },
+    {
+      "it": 30800,
+      "success": 0.8320000000000001,
+      "per_task": {
+        "pickcube": 0.855,
+        "liftpeg": 0.975,
+        "peginsert": 0.49,
+        "stack": 0.84,
+        "pushcube": 1.0
+      },
+      "bc": 0.17294444516301155
+    },
+    {
+      "it": 31000,
+      "success": 0.8320000000000001,
+      "per_task": {
+        "pickcube": 0.805,
+        "liftpeg": 0.955,
+        "peginsert": 0.55,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.17541308887302876
+    },
+    {
+      "it": 31200,
+      "success": 0.825,
+      "per_task": {
+        "pickcube": 0.825,
+        "liftpeg": 0.92,
+        "peginsert": 0.53,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.16532757692039013
+    },
+    {
+      "it": 31400,
+      "success": 0.843,
+      "per_task": {
+        "pickcube": 0.82,
+        "liftpeg": 0.95,
+        "peginsert": 0.56,
+        "stack": 0.885,
+        "pushcube": 1.0
+      },
+      "bc": 0.16711128503084183
+    },
+    {
+      "it": 31600,
+      "success": 0.7929999999999999,
+      "per_task": {
+        "pickcube": 0.795,
+        "liftpeg": 0.96,
+        "peginsert": 0.415,
+        "stack": 0.795,
+        "pushcube": 1.0
+      },
+      "bc": 0.17173565924167633
+    },
+    {
+      "it": 31800,
+      "success": 0.829,
+      "per_task": {
+        "pickcube": 0.84,
+        "liftpeg": 0.97,
+        "peginsert": 0.49,
+        "stack": 0.845,
+        "pushcube": 1.0
+      },
+      "bc": 0.16427674144506454
+    },
+    {
+      "it": 32000,
+      "success": 0.828,
+      "per_task": {
+        "pickcube": 0.83,
+        "liftpeg": 0.945,
+        "peginsert": 0.53,
+        "stack": 0.835,
+        "pushcube": 1.0
+      },
+      "bc": 0.16712114214897156
+    },
+    {
+      "it": 32200,
+      "success": 0.845,
+      "per_task": {
+        "pickcube": 0.86,
+        "liftpeg": 0.97,
+        "peginsert": 0.51,
+        "stack": 0.885,
+        "pushcube": 1.0
+      },
+      "bc": 0.18305147625505924
+    },
+    {
+      "it": 32400,
+      "success": 0.8280000000000001,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.905,
+        "peginsert": 0.55,
+        "stack": 0.895,
+        "pushcube": 1.0
+      },
+      "bc": 0.16767982579767704
+    },
+    {
+      "it": 32600,
+      "success": 0.8379999999999999,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.97,
+        "peginsert": 0.595,
+        "stack": 0.84,
+        "pushcube": 1.0
+      },
+      "bc": 0.1733360793441534
+    },
+    {
+      "it": 32800,
+      "success": 0.808,
+      "per_task": {
+        "pickcube": 0.795,
+        "liftpeg": 0.9,
+        "peginsert": 0.505,
+        "stack": 0.84,
+        "pushcube": 1.0
+      },
+      "bc": 0.1753666941076517
+    },
+    {
+      "it": 33000,
+      "success": 0.826,
+      "per_task": {
+        "pickcube": 0.795,
+        "liftpeg": 0.935,
+        "peginsert": 0.545,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.17261520773172379
+    },
+    {
+      "it": 33200,
+      "success": 0.8400000000000001,
+      "per_task": {
+        "pickcube": 0.855,
+        "liftpeg": 0.96,
+        "peginsert": 0.545,
+        "stack": 0.845,
+        "pushcube": 0.995
+      },
+      "bc": 0.17054940946400166
+    },
+    {
+      "it": 33400,
+      "success": 0.8329999999999999,
+      "per_task": {
+        "pickcube": 0.835,
+        "liftpeg": 0.985,
+        "peginsert": 0.49,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.16465956531465054
+    },
+    {
+      "it": 33600,
+      "success": 0.8099999999999999,
+      "per_task": {
+        "pickcube": 0.76,
+        "liftpeg": 0.89,
+        "peginsert": 0.54,
+        "stack": 0.86,
+        "pushcube": 1.0
+      },
+      "bc": 0.1688216347247362
+    },
+    {
+      "it": 33800,
+      "success": 0.829,
+      "per_task": {
+        "pickcube": 0.805,
+        "liftpeg": 0.975,
+        "peginsert": 0.51,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.17707549594342709
+    },
+    {
+      "it": 34000,
+      "success": 0.843,
+      "per_task": {
+        "pickcube": 0.845,
+        "liftpeg": 0.97,
+        "peginsert": 0.535,
+        "stack": 0.865,
+        "pushcube": 1.0
+      },
+      "bc": 0.16629264689981937
+    },
+    {
+      "it": 34200,
+      "success": 0.818,
+      "per_task": {
+        "pickcube": 0.825,
+        "liftpeg": 0.965,
+        "peginsert": 0.475,
+        "stack": 0.825,
+        "pushcube": 1.0
+      },
+      "bc": 0.1705536860972643
+    },
+    {
+      "it": 34400,
+      "success": 0.845,
+      "per_task": {
+        "pickcube": 0.85,
+        "liftpeg": 0.96,
+        "peginsert": 0.54,
+        "stack": 0.875,
+        "pushcube": 1.0
+      },
+      "bc": 0.167861208319664
+    },
+    {
+      "it": 34600,
+      "success": 0.8210000000000001,
+      "per_task": {
+        "pickcube": 0.78,
+        "liftpeg": 0.965,
+        "peginsert": 0.495,
+        "stack": 0.865,
+        "pushcube": 1.0
+      },
+      "bc": 0.16626419685781002
+    },
+    {
+      "it": 34800,
+      "success": 0.8370000000000001,
+      "per_task": {
+        "pickcube": 0.84,
+        "liftpeg": 0.93,
+        "peginsert": 0.515,
+        "stack": 0.9,
+        "pushcube": 1.0
+      },
+      "bc": 0.17006110958755016
+    },
+    {
+      "it": 35000,
+      "success": 0.8540000000000001,
+      "per_task": {
+        "pickcube": 0.82,
+        "liftpeg": 0.97,
+        "peginsert": 0.555,
+        "stack": 0.93,
+        "pushcube": 0.995
+      },
+      "bc": 0.16042547300457954
+    },
+    {
+      "it": 35200,
+      "success": 0.842,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.95,
+        "peginsert": 0.6,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.17144197598099709
+    },
+    {
+      "it": 35400,
+      "success": 0.8390000000000001,
+      "per_task": {
+        "pickcube": 0.78,
+        "liftpeg": 0.965,
+        "peginsert": 0.57,
+        "stack": 0.88,
+        "pushcube": 1.0
+      },
+      "bc": 0.15989632345736027
+    },
+    {
+      "it": 35600,
+      "success": 0.8370000000000001,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.95,
+        "peginsert": 0.56,
+        "stack": 0.86,
+        "pushcube": 1.0
+      },
+      "bc": 0.17266269959509373
+    },
+    {
+      "it": 35800,
+      "success": 0.8390000000000001,
+      "per_task": {
+        "pickcube": 0.835,
+        "liftpeg": 0.935,
+        "peginsert": 0.57,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.15852156840264797
+    },
+    {
+      "it": 36000,
+      "success": 0.8390000000000001,
+      "per_task": {
+        "pickcube": 0.85,
+        "liftpeg": 0.965,
+        "peginsert": 0.545,
+        "stack": 0.835,
+        "pushcube": 1.0
+      },
+      "bc": 0.16525819897651672
+    },
+    {
+      "it": 36200,
+      "success": 0.8469999999999999,
+      "per_task": {
+        "pickcube": 0.835,
+        "liftpeg": 0.97,
+        "peginsert": 0.58,
+        "stack": 0.855,
+        "pushcube": 0.995
+      },
+      "bc": 0.16541090980172157
+    },
+    {
+      "it": 36400,
+      "success": 0.8009999999999999,
+      "per_task": {
+        "pickcube": 0.77,
+        "liftpeg": 0.89,
+        "peginsert": 0.47,
+        "stack": 0.875,
+        "pushcube": 1.0
+      },
+      "bc": 0.16314379312098026
+    },
+    {
+      "it": 36600,
+      "success": 0.843,
+      "per_task": {
+        "pickcube": 0.795,
+        "liftpeg": 0.975,
+        "peginsert": 0.57,
+        "stack": 0.875,
+        "pushcube": 1.0
+      },
+      "bc": 0.15869248285889626
+    },
+    {
+      "it": 36800,
+      "success": 0.8460000000000001,
+      "per_task": {
+        "pickcube": 0.85,
+        "liftpeg": 0.985,
+        "peginsert": 0.52,
+        "stack": 0.89,
+        "pushcube": 0.985
+      },
+      "bc": 0.17015583626925945
+    },
+    {
+      "it": 37000,
+      "success": 0.85,
+      "per_task": {
+        "pickcube": 0.83,
+        "liftpeg": 0.98,
+        "peginsert": 0.55,
+        "stack": 0.895,
+        "pushcube": 0.995
+      },
+      "bc": 0.16866778582334518
+    },
+    {
+      "it": 37200,
+      "success": 0.829,
+      "per_task": {
+        "pickcube": 0.79,
+        "liftpeg": 0.96,
+        "peginsert": 0.535,
+        "stack": 0.86,
+        "pushcube": 1.0
+      },
+      "bc": 0.17770719714462757
+    },
+    {
+      "it": 37400,
+      "success": 0.8300000000000001,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.975,
+        "peginsert": 0.5,
+        "stack": 0.87,
+        "pushcube": 0.995
+      },
+      "bc": 0.15836898423731327
+    },
+    {
+      "it": 37600,
+      "success": 0.827,
+      "per_task": {
+        "pickcube": 0.75,
+        "liftpeg": 0.93,
+        "peginsert": 0.6,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.16369528323411942
+    },
+    {
+      "it": 37800,
+      "success": 0.8280000000000001,
+      "per_task": {
+        "pickcube": 0.815,
+        "liftpeg": 0.96,
+        "peginsert": 0.51,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.16655280627310276
+    },
+    {
+      "it": 38000,
+      "success": 0.8300000000000001,
+      "per_task": {
+        "pickcube": 0.795,
+        "liftpeg": 0.965,
+        "peginsert": 0.56,
+        "stack": 0.83,
+        "pushcube": 1.0
+      },
+      "bc": 0.16701027937233448
+    },
+    {
+      "it": 38200,
+      "success": 0.8320000000000001,
+      "per_task": {
+        "pickcube": 0.84,
+        "liftpeg": 0.955,
+        "peginsert": 0.55,
+        "stack": 0.815,
+        "pushcube": 1.0
+      },
+      "bc": 0.17708452604711056
+    },
+    {
+      "it": 38400,
+      "success": 0.833,
+      "per_task": {
+        "pickcube": 0.795,
+        "liftpeg": 0.965,
+        "peginsert": 0.545,
+        "stack": 0.86,
+        "pushcube": 1.0
+      },
+      "bc": 0.16036920621991158
+    },
+    {
+      "it": 38600,
+      "success": 0.8399999999999999,
+      "per_task": {
+        "pickcube": 0.805,
+        "liftpeg": 0.965,
+        "peginsert": 0.61,
+        "stack": 0.82,
+        "pushcube": 1.0
+      },
+      "bc": 0.1655795630067587
+    },
+    {
+      "it": 38800,
+      "success": 0.8480000000000001,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.93,
+        "peginsert": 0.595,
+        "stack": 0.91,
+        "pushcube": 0.995
+      },
+      "bc": 0.15634452365338802
+    },
+    {
+      "it": 39000,
+      "success": 0.845,
+      "per_task": {
+        "pickcube": 0.805,
+        "liftpeg": 0.955,
+        "peginsert": 0.59,
+        "stack": 0.875,
+        "pushcube": 1.0
+      },
+      "bc": 0.16233793832361698
+    },
+    {
+      "it": 39200,
+      "success": 0.8320000000000001,
+      "per_task": {
+        "pickcube": 0.8,
+        "liftpeg": 0.93,
+        "peginsert": 0.55,
+        "stack": 0.88,
+        "pushcube": 1.0
+      },
+      "bc": 0.16657343693077564
+    },
+    {
+      "it": 39400,
+      "success": 0.853,
+      "per_task": {
+        "pickcube": 0.85,
+        "liftpeg": 0.965,
+        "peginsert": 0.545,
+        "stack": 0.905,
+        "pushcube": 1.0
+      },
+      "bc": 0.16297937743365765
+    },
+    {
+      "it": 39600,
+      "success": 0.826,
+      "per_task": {
+        "pickcube": 0.83,
+        "liftpeg": 0.94,
+        "peginsert": 0.575,
+        "stack": 0.785,
+        "pushcube": 1.0
+      },
+      "bc": 0.1676221340894699
+    },
+    {
+      "it": 39800,
+      "success": 0.8550000000000001,
+      "per_task": {
+        "pickcube": 0.785,
+        "liftpeg": 0.975,
+        "peginsert": 0.665,
+        "stack": 0.85,
+        "pushcube": 1.0
+      },
+      "bc": 0.16115028224885464
+    },
+    {
+      "it": 40000,
+      "success": 0.8370000000000001,
+      "per_task": {
+        "pickcube": 0.81,
+        "liftpeg": 0.935,
+        "peginsert": 0.585,
+        "stack": 0.855,
+        "pushcube": 1.0
+      },
+      "bc": 0.1582625787705183
+    }
+  ],
+  "wandb_id": null
+}

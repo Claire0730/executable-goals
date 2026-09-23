@@ -1,0 +1,253 @@
+{
+  "tag": "push_v9_nz_s0",
+  "task": "pushcube",
+  "env": "PushCube-v1",
+  "noise_v2": 1.0,
+  "obj_v2": 1.0,
+  "noise_curriculum": 0.3,
+  "noise_a0": 0.1,
+  "noise_tail": 1.0,
+  "noise_zreflect": false,
+  "noise_zmode": "reflect",
+  "noise_goal_rot": 1.0,
+  "sig_obs": true,
+  "sig_mode": "true",
+  "priv_critic": false,
+  "shaping_true_goal": false,
+  "init_from": "runs_rl/push_kp_s0_psipad_padsig/agent.pt",
+  "w_bump": 0.0,
+  "bump_mode": "delta",
+  "contact_obs": false,
+  "obj_noise_mm": 0.0,
+  "obj_rot_mm": 0.0,
+  "goal_noise_mm": 0.0,
+  "goal_rot_mm": 0.0,
+  "obs": "pushcube_kp",
+  "arm": "pushcube",
+  "head": "paired",
+  "reward": "stock",
+  "seed": 0,
+  "num_kp": 64,
+  "fam_cfg": null,
+  "w_kp": 0.0,
+  "qdim": 9,
+  "has_scene": false,
+  "ap2ap_fields": 1,
+  "last_action": 0,
+  "robot": "panda",
+  "ignore_terminations": 1,
+  "reconfig_freq": 0,
+  "control": "pd_joint_delta_pos",
+  "num_envs": 1024,
+  "max_episode_steps": 50,
+  "num_steps": 50,
+  "gamma": 0.8,
+  "gae_lambda": 0.9,
+  "epochs": 8,
+  "minibatches": 32,
+  "lr": 5e-05,
+  "target_kl": 0.01,
+  "token_dim": 128,
+  "hidden": "1024,1024,512,512",
+  "pn_hidden": "128,128",
+  "params": 1004305,
+  "obs_dim": 447,
+  "branches": null,
+  "total_steps": 12000000,
+  "peak_success": 0.94853515625,
+  "final_success": 0.875283203125,
+  "history": [
+    {
+      "it": 10,
+      "steps": 512000,
+      "success": 0.94853515625,
+      "grasp": NaN,
+      "rew": 0.58870530128479,
+      "kl": 0.010015985928475857
+    },
+    {
+      "it": 20,
+      "steps": 1024000,
+      "success": 0.9197265625,
+      "grasp": NaN,
+      "rew": 0.6356180906295776,
+      "kl": 0.010438067838549614
+    },
+    {
+      "it": 30,
+      "steps": 1536000,
+      "success": 0.9079427083333333,
+      "grasp": NaN,
+      "rew": 0.6420302987098694,
+      "kl": 0.010568751022219658
+    },
+    {
+      "it": 40,
+      "steps": 2048000,
+      "success": 0.8973388671875,
+      "grasp": NaN,
+      "rew": 0.6501893997192383,
+      "kl": 0.010189495980739594
+    },
+    {
+      "it": 50,
+      "steps": 2560000,
+      "success": 0.89103515625,
+      "grasp": NaN,
+      "rew": 0.6475520133972168,
+      "kl": 0.010339503176510334
+    },
+    {
+      "it": 60,
+      "steps": 3072000,
+      "success": 0.8857747395833333,
+      "grasp": NaN,
+      "rew": 0.6323696970939636,
+      "kl": 0.010170544497668743
+    },
+    {
+      "it": 70,
+      "steps": 3584000,
+      "success": 0.8803989955357143,
+      "grasp": NaN,
+      "rew": 0.638806164264679,
+      "kl": 0.0106993168592453
+    },
+    {
+      "it": 80,
+      "steps": 4096000,
+      "success": 0.8746337890625,
+      "grasp": NaN,
+      "rew": 0.6705517172813416,
+      "kl": 0.01023881696164608
+    },
+    {
+      "it": 90,
+      "steps": 4608000,
+      "success": 0.869921875,
+      "grasp": NaN,
+      "rew": 0.6891569495201111,
+      "kl": 0.01026963908225298
+    },
+    {
+      "it": 100,
+      "steps": 5120000,
+      "success": 0.866865234375,
+      "grasp": NaN,
+      "rew": 0.6894081234931946,
+      "kl": 0.010011019185185432
+    },
+    {
+      "it": 110,
+      "steps": 5632000,
+      "success": 0.8658735795454545,
+      "grasp": NaN,
+      "rew": 0.7175781726837158,
+      "kl": 0.010062520392239094
+    },
+    {
+      "it": 120,
+      "steps": 6144000,
+      "success": 0.8654134114583333,
+      "grasp": NaN,
+      "rew": 0.7264556884765625,
+      "kl": 0.010099461302161217
+    },
+    {
+      "it": 130,
+      "steps": 6656000,
+      "success": 0.8647235576923077,
+      "grasp": NaN,
+      "rew": 0.7294333577156067,
+      "kl": 0.010179469361901283
+    },
+    {
+      "it": 140,
+      "steps": 7168000,
+      "success": 0.864794921875,
+      "grasp": NaN,
+      "rew": 0.7500377297401428,
+      "kl": 0.01020784117281437
+    },
+    {
+      "it": 150,
+      "steps": 7680000,
+      "success": 0.86474609375,
+      "grasp": NaN,
+      "rew": 0.7536787390708923,
+      "kl": 0.010121015831828117
+    },
+    {
+      "it": 160,
+      "steps": 8192000,
+      "success": 0.86649169921875,
+      "grasp": NaN,
+      "rew": 0.7728089690208435,
+      "kl": 0.010442190803587437
+    },
+    {
+      "it": 170,
+      "steps": 8704000,
+      "success": 0.8688246783088235,
+      "grasp": NaN,
+      "rew": 0.769428551197052,
+      "kl": 0.010019272565841675
+    },
+    {
+      "it": 180,
+      "steps": 9216000,
+      "success": 0.8703504774305556,
+      "grasp": NaN,
+      "rew": 0.7790964841842651,
+      "kl": 0.010506890714168549
+    },
+    {
+      "it": 190,
+      "steps": 9728000,
+      "success": 0.8719366776315789,
+      "grasp": NaN,
+      "rew": 0.7646355032920837,
+      "kl": 0.011904424987733364
+    },
+    {
+      "it": 200,
+      "steps": 10240000,
+      "success": 0.8735205078125,
+      "grasp": NaN,
+      "rew": 0.7697024345397949,
+      "kl": 0.010068954899907112
+    },
+    {
+      "it": 210,
+      "steps": 10752000,
+      "success": 0.8718603515625,
+      "grasp": NaN,
+      "rew": 0.7887650728225708,
+      "kl": 0.010066190734505653
+    },
+    {
+      "it": 220,
+      "steps": 11264000,
+      "success": 0.8728759765625,
+      "grasp": NaN,
+      "rew": 0.7729464769363403,
+      "kl": 0.01046093087643385
+    },
+    {
+      "it": 230,
+      "steps": 11776000,
+      "success": 0.8743603515625,
+      "grasp": NaN,
+      "rew": 0.7997556328773499,
+      "kl": 0.010509644635021687
+    },
+    {
+      "it": 234,
+      "steps": 11980800,
+      "success": 0.875283203125,
+      "grasp": NaN,
+      "rew": 0.7942491173744202,
+      "kl": 0.010496055707335472
+    }
+  ]
+}

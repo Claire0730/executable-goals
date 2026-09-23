@@ -1,0 +1,10 @@
+{
+  "tag": "mix4_realcam_n2400",
+  "dataset": "data/ds/realcam_n2400",
+  "epochs": 15,
+  "batch_size": 8,
+  "lr_decoder": 0.00015,
+  "warm_start": "<private-repo>/assets_ckpt/Generalist/tracegen_model.pth",
+  "from_scratch": false,
+  "final_ckpt": "<private-repo>/runs/mix4_realcam_n2400/ckpt/20260827_011014/final_model.pth"
+}

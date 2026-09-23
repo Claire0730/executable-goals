@@ -1,0 +1,44 @@
+{
+  "tag": "mix5_t2k_gmap",
+  "argv": [
+    "--dataset",
+    "data/ds/realcam_t2k_n3000",
+    "--tag",
+    "mix5_t2k_gmap",
+    "--ckpt",
+    "runs/mix4_realcam_n2400/ckpt/20260827_011014/final_model.pth",
+    "--epochs",
+    "8",
+    "--batch-size",
+    "8",
+    "--lr-decoder",
+    "1.5e-4",
+    "--num-workers",
+    "4"
+  ],
+  "git": "ba7de4d2af700d4d4f02a8d2c2f8f8d350751108",
+  "env": {
+    "MSGEN_KEEP_ALL_CKPT": "1",
+    "MSGEN_T2K": "1",
+    "MSGEN_T2K_GMAP": "1",
+    "MSGEN_T2K_W": "0.3"
+  },
+  "active": {
+    "vispos": false,
+    "qfeat": false,
+    "movehead": false,
+    "t2k": true,
+    "depthaug": false,
+    "cfg": false,
+    "seed": false,
+    "rotloss": false,
+    "depthnorm": false,
+    "lrgroups": false,
+    "wall": false,
+    "depthscale": false,
+    "depthtower": false,
+    "divergence": false,
+    "odestats": false,
+    "steps": false
+  }
+}

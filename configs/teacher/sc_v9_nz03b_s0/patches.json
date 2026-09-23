@@ -1,0 +1,8 @@
+{
+  "patches": [
+    "msppo/patch_stack_frame.py"
+  ],
+  "env": {},
+  "git": "ba7de4d2af700d4d4f02a8d2c2f8f8d350751108",
+  "note": "frame teacher (psi k1,h) re-trained with the noise-v2 injector + real sig block; warm start padded from sc_v9_frame_s0"
+}

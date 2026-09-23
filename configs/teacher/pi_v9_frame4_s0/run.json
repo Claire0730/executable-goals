@@ -1,0 +1,189 @@
+{
+  "tag": "pi_v9_frame4_s0",
+  "task": "peginsert",
+  "env": "PegInsertionSide-v1",
+  "noise_v2": 1.0,
+  "obj_v2": 1.0,
+  "noise_curriculum": 0.0,
+  "noise_a0": 1.0,
+  "noise_tail": 1.0,
+  "noise_zreflect": false,
+  "noise_zmode": "reflect",
+  "noise_goal_rot": 1.0,
+  "sig_obs": true,
+  "sig_mode": "true",
+  "priv_critic": false,
+  "shaping_true_goal": false,
+  "init_from": "runs_rl/pi_v5_hi_s0/agent.pt",
+  "w_bump": 0.0,
+  "bump_mode": "delta",
+  "contact_obs": false,
+  "obj_noise_mm": 0.0,
+  "obj_rot_mm": 0.0,
+  "goal_noise_mm": 0.0,
+  "goal_rot_mm": 0.0,
+  "obs": "peginsert_kp",
+  "arm": "peginsert",
+  "head": "paired",
+  "reward": "stock",
+  "seed": 0,
+  "num_kp": 64,
+  "fam_cfg": null,
+  "w_kp": 0.0,
+  "qdim": 9,
+  "has_scene": true,
+  "ap2ap_fields": 1,
+  "last_action": 0,
+  "robot": "panda",
+  "ignore_terminations": 1,
+  "reconfig_freq": 0,
+  "control": "pd_joint_delta_pos",
+  "num_envs": 1024,
+  "max_episode_steps": 100,
+  "num_steps": 50,
+  "gamma": 0.8,
+  "gae_lambda": 0.9,
+  "epochs": 8,
+  "minibatches": 32,
+  "lr": 2e-05,
+  "target_kl": 0.005,
+  "token_dim": 128,
+  "hidden": "1024,1024,512,512",
+  "pn_hidden": "128,128",
+  "params": 1012497,
+  "obs_dim": 455,
+  "branches": null,
+  "total_steps": 8000000,
+  "peak_success": 0.55390625,
+  "final_success": 0.5174278846153846,
+  "history": [
+    {
+      "it": 10,
+      "steps": 512000,
+      "success": 0.55390625,
+      "grasp": 0.738896484375,
+      "rew": 0.682102620601654,
+      "kl": 0.00527758477255702
+    },
+    {
+      "it": 20,
+      "steps": 1024000,
+      "success": 0.55068359375,
+      "grasp": 0.7250625,
+      "rew": 0.6795012354850769,
+      "kl": 0.005520842503756285
+    },
+    {
+      "it": 30,
+      "steps": 1536000,
+      "success": 0.5492838541666667,
+      "grasp": 0.730044921875,
+      "rew": 0.685130774974823,
+      "kl": 0.005067217163741589
+    },
+    {
+      "it": 40,
+      "steps": 2048000,
+      "success": 0.546826171875,
+      "grasp": 0.741298828125,
+      "rew": 0.6731873750686646,
+      "kl": 0.005810904782265425
+    },
+    {
+      "it": 50,
+      "steps": 2560000,
+      "success": 0.5423828125,
+      "grasp": 0.735263671875,
+      "rew": 0.6687183976173401,
+      "kl": 0.005241249687969685
+    },
+    {
+      "it": 60,
+      "steps": 3072000,
+      "success": 0.5369791666666667,
+      "grasp": 0.732126953125,
+      "rew": 0.64810711145401,
+      "kl": 0.005025855731219053
+    },
+    {
+      "it": 70,
+      "steps": 3584000,
+      "success": 0.5328404017857142,
+      "grasp": 0.721849609375,
+      "rew": 0.647357165813446,
+      "kl": 0.005383943673223257
+    },
+    {
+      "it": 80,
+      "steps": 4096000,
+      "success": 0.5302734375,
+      "grasp": 0.726287109375,
+      "rew": 0.6405757665634155,
+      "kl": 0.0050931815057992935
+    },
+    {
+      "it": 90,
+      "steps": 4608000,
+      "success": 0.5293619791666667,
+      "grasp": 0.704142578125,
+      "rew": 0.6746322512626648,
+      "kl": 0.005869673565030098
+    },
+    {
+      "it": 100,
+      "steps": 5120000,
+      "success": 0.5292578125,
+      "grasp": 0.715275390625,
+      "rew": 0.6488105058670044,
+      "kl": 0.0051335799507796764
+    },
+    {
+      "it": 110,
+      "steps": 5632000,
+      "success": 0.5288707386363637,
+      "grasp": 0.71375390625,
+      "rew": 0.6594743132591248,
+      "kl": 0.005369100254029036
+    },
+    {
+      "it": 120,
+      "steps": 6144000,
+      "success": 0.527490234375,
+      "grasp": 0.711212890625,
+      "rew": 0.6379067301750183,
+      "kl": 0.0053572701290249825
+    },
+    {
+      "it": 130,
+      "steps": 6656000,
+      "success": 0.5255408653846154,
+      "grasp": 0.697138671875,
+      "rew": 0.6380550861358643,
+      "kl": 0.005541604477912188
+    },
+    {
+      "it": 140,
+      "steps": 7168000,
+      "success": 0.5216657366071429,
+      "grasp": 0.6938515625,
+      "rew": 0.6143190264701843,
+      "kl": 0.005154323298484087
+    },
+    {
+      "it": 150,
+      "steps": 7680000,
+      "success": 0.519609375,
+      "grasp": 0.681375,
+      "rew": 0.6237490773200989,
+      "kl": 0.005715607199817896
+    },
+    {
+      "it": 156,
+      "steps": 7987200,
+      "success": 0.5174278846153846,
+      "grasp": 0.676591796875,
+      "rew": 0.611335039138794,
+      "kl": 0.005052595399320126
+    }
+  ]
+}

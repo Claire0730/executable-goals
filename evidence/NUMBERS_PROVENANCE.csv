@@ -1,0 +1,61 @@
+quantity,value,protocol,source (relative to <workspace>/private-repo unless absolute)
+row4 success pickcube/liftpeg/peg/stack/push (gmpc_s0),.715/.969/.316/.8125/1.000 (mean .7625),N=256 seed 999 final,paper_results/row4_mt5_rcfz_gmpc_s0_nc_999.json (per_task)
+row3 success pickcube/liftpeg/peg/stack/push (gmpc_s0 true goal),.9375/.96875/.37109375/.8828125/1.000 (mean .832),N=256 seed 999 final no --goal-delta (privileged ground truth),paper_results/row3_mt5_rcfz_gmpc_s0_999.json (per_task)
+row4 success pickcube/liftpeg/peg/stack/push (gmpc_s0) seed 997,.7109/.9727/.3242/.8672/1.000,N=256 seed 997 final,paper_results/row4_mt5_rcfz_gmpc_s0_nc_997.json (per_task)
+row4 success pickcube/liftpeg/peg/stack/push (gmpc_s0) seed 998,.6836/.9492/.2695/.8086/1.000,N=256 seed 998 final,paper_results/row4_mt5_rcfz_gmpc_s0_nc_998.json (per_task)
+row6 trk success,.691/.496/.320/.727/.996,N=256 seed 999 CoTracker3 v3 params,paper_results/row6_<task>_trk_gmpc_999.json
+row6 dead-reckoning success,.656/.398/.250/.680/.992,same,paper_results/row6_<task>_dr_gmpc_999.json
+teacher v9 clean,.973/.887/.957/.977/.992 (mean .957),N=256 seed 999,paper_data/EXPDUMP_20260901.md:432 (<private-repo>/experiments/20260901_dnoise/tev*.log)
+official PPO peg,0.116 +- 0.051,3 seeds clearance 0.01,docs/PLAN_TWO_PAPERS_20260830.md §2 (results/refppo)
+student config (params 804002; 40k it; 320 envs; lr 3e-4; d128 L4 H4),-,-,runs_rl/mt5_rcfz_gmpc_s0/run.json
+planner training configs,epochs 15/8/8; lr 1.5e-4; batch 8,-,runs/{mix4_realcam_n2400,mix5_t2k_n3000,mix5_t2k_gmap}/run.json
+backbone architecture,DINOv3 L/16; SigLIP B/16-384; T5-base; 6 layers 12 heads d768,-,<workspace>/TraceGen/cfg/eval.yaml
+T2K head dims and loss weights,hidden 256; 8-head xattn; K_MAX 4; N_SEG 3; W=0.3; gmap 0.3,-,msgen/patch_t2k.py:31;145-201;337-339
+goal-map label v1 (6 cm ball fraction),-,trained 09-04,msgen/labels_t2k.py:36-41 (comment) ; v2 Gaussian at :42-46
+readout v1/v3/v5/v10; gate 12 cm; band; sigma 6 cm,-,-,real-robot deployment code (not released)
+goal error table (all cells of Table II),see goal_table.json,256 scenes per seed,evidence/goal_table.json (P = fraction of scenes with terminal error below the per-task tolerance of tools/t2k_decode.py)
+episode-constant fraction,.776/.908/.879 (999); .765/.884/.835 (997); within-scene rms 22.0/14.7/18.5 mm,K=4 decomposition,docs/PLAN_TWO_PAPERS_20260830.md §2.1
+K aggregation null; oracle 9-10 mm,-,4 tasks x 9 seeds,<private-repo>/experiments/20260830_uncert/RESULTS.md §A1
+head K=4 fusion null 34.2->34.6,-,-,<private-repo>/experiments/20260906_probes/
+wrongtext <=2.2 mm; objmask +15.8/+17.2/+29.5; liftpeg objmask 241.5->179.7,-,K=1 seed 999,<private-repo>/experiments/20260830_percep/RESULTS_mix4_realcam_n2400.md
+pickcube ray 26.4 vs 16.8 mm; 89% planner failures,-,-,not recorded (internal note)
+ray oracle 24.5->14.0 mm; closed loop .547->.801,gm_s0 seed 999,-,<private-repo>/experiments/20260906_probes/ (not recorded (internal note))
+pickcube gmappeakNC error concentration: 999 IQR 24.3-25.1 mm; 74.6% of 2560 in 23-26 mm; along-ray 20.9 / perpendicular 12.7 mm,seeds 990-999,production bank vs configs goal,<private-repo>/experiments/20260912_student_inputs/bias_stats.json
+pickcube zero-parameter cap correction: median 24.6->8.4 mm; P(<25) .703 unchanged,held-out seeds 997-999 (768 scenes),s=2r/3=16.7 mm,<private-repo>/experiments/20260912_student_inputs/gate3.json (modes.cap_theory)
+stack decomposition .375/.602/.824,same student same protocol,row4 999,<private-repo>/experiments/20260903_q1notrace/ (not recorded (internal note) Q9)
+gmap swap without refit .773; with refit .836; dcc control .848,-,row4 999,<private-repo>/experiments/20260905_gbank/{verdict.json,row4_refit_*_999.json}; not recorded (internal note) Q (gmap 09-05 noon)
+gmap vs dcc three seeds .835 vs .853,999/997/998,-,<private-repo>/experiments/20260907_rep/row4_stack_{gmappure,dcc}_{997,998}.json
+gmap v2 and gbank negatives,-,-,<private-repo>/experiments/20260905_gmap2/; <private-repo>/experiments/20260905_gbank/verdict.json
+anchor x size table,4.0/3.8/5.0 cm,seeds 555/557/556,<private-repo>/experiments/20260906_cube5/; <private-repo>/experiments/20260907_cube38/
+readout v1->v10 real 14 frames .21->.86 (27->14 mm); sim five geometries,-,-,<private-repo>/experiments/20260908_realdepth/; <private-repo>/experiments/20260907_deploy_sens/ (sens14*)
+trace-loss-zero head deltas,-,-,<private-repo>/experiments/20260903_q1notrace/ (not recorded (internal note) Q1)
+E1 ladder (both students),see Table,rms 30 mm N=256 seed 999,<private-repo>/experiments/20260830_e0e1/e1_report.md
+moving vs frozen .965/.910/.215/.730 -> .344/.801/.160/.398,mt4_rc_s0,-,<private-repo>/experiments/20260828_review/a2b_*_inj_{moving,frozen}.json (PLAN_TWO_PAPERS §2.1)
+frozen injection recipe .467->.525,-,row4 999,docs/PLAN_TWO_PAPERS_20260830.md §2
+E0 ellipsoid,PickCube 20.2/22.8/26.8; LiftPeg 53.2/132.5/136.2; u- .685 vs w- .277,12100 episodes per task,<private-repo>/experiments/20260830_e0e1/e0_report.md
+success vs error bins; bump .26 vs .71,earlier student,-,docs/PLAN_TWO_PAPERS_20260830.md §2.1
+trace lift 83.5 mm; clearance 50.2 mm; 99%>20 mm,stack seed 999,-,<private-repo>/experiments/20260830_uncert/RESULTS.md §B1
+psi student FAIL (peg -21/-12),-,-,<private-repo>/experiments/20260830_k3/RESULTS_mt4_rcfz_psi2_s0_FA.md
+pickcube refit .547->.715; multi-source .520/.910,-,row4 999,<private-repo>/experiments/20260906_batch/row4_mt5_rcfz_{gmpc,ms}_s0_{nc,marker}_999.json
+joint finetune .371/.731/.203/.004/.996; scratch stack .008,-,row4 999,<private-repo>/experiments/20260906_joint/ (not recorded (internal note))
+robustness sweep (Table VI),see Table,row6 trk N=256 stack gm_s0,<private-repo>/experiments/20260907_deploy_sens/summary.py and logs
+colour-jitter finetune .754->.426,-,-,runs/mix5_t2k_gmap_ca ; <private-repo>/experiments/20260907_deploy_sens/
+lab loss decomposition .828/.719/.734/.613/.609/.586/.484,lab geometry gm_bz_s0,-,<private-repo>/experiments/20260907_deploy_sens/ (sens19) ; not recorded (internal note) 09-09 12:10
+time scaling .570/.543/.531; all frames .652; serve_sim .715,-,-,<private-repo>/experiments/20260907_deploy_sens/ (sens16/sens22); not recorded (internal note) 09-09
+real frames planner vs detect 20-22 mm p90 36-44; 86 layouts .903 vs .934 gate .953; real 42/66 5/7 6/7,-,-,<private-repo>/experiments/20260909_realdemos/RESULTS.md ; <private-repo>/experiments/20260909_plannergoal/
+PnP camera 54 mm/1.9 deg rms 2.81 px; base_to_sim (-0.615 0 -0.075),-,-,real-robot deployment package (not released) (not recorded (internal note))
+gm_bz_s0 row3 .828; newcam .508; plan pose .586,-,-,<private-repo>/experiments/20260908_basez/
+A vs B flow; A vs prod,see JOINT_AB.md,held-out episodes 400-499,<private-repo>/experiments/20260910_plannergen/JOINT_AB.md
+R3 flow and goal battery; gates,see RARMS.md,256 scenes per cell,<private-repo>/experiments/20260911_rarms/RARMS.md
+data composition of gen1 (canonical 0% / 3.5%),-,-,<private-repo>/experiments/20260910_plannergen/PLAN.md §30
+clearance 0.003 .082/.078/.047; retention .20-.28; teachers .12-.49,mt5_rcfz_row5_s0,-,<private-repo>/experiments/20260902_clearance/
+PlaceSphere zero-shot 157/115/97 mm,-,-,<private-repo>/experiments/20260903_placesphere/
+zero-shot released generalist 183.6/165.6/364.0/94.9 mm,k1ransac seed 999,-,results/<task>_goals_zeroshot_gen_999_k1ransac.npz (goal_table.json)
+cost (OLD wall800 planner, not the deployed checkpoint) 674.5M params 20.25 TFLOPs 1.81 s,-,batch 8 100 ODE steps RTX 5090,<private-repo>/experiments/20260824_wallsel/bench_planner.json
+planner backbone+decoder 674546334 params (75486238 trainable 11.2%) 0.253s/scene 4.51 TFLOPs/scene,solve/rotation ckpt mix4_realcam_n2400,batch 1 20 ODE steps MSGEN_STEPS=20 MSGEN_DT=fix RTX 5090,<private-repo>/experiments/20260911_speed/bench_mix4_realcam_n2400_b1.json
+planner +T2K head 677596675/677595906 params (78536579/78535810 trainable 11.6%) 0.277-0.278s/scene 5.06 TFLOPs/scene,T2K-head ckpts mix5_t2k_gmap / mix5_t2k_n3000,batch 1 20 ODE steps MSGEN_STEPS=20 MSGEN_DT=fix RTX 5090,<private-repo>/experiments/20260911_speed/bench_mix5_t2k_gmap_b1.json <private-repo>/experiments/20260911_speed/bench_mix5_t2k_n3000_b1.json
+resident planner full-call 21 s -> 2 s,-,-,REMOVED FROM PAPER — no eval json; attempted re-measurement in <private-repo>/experiments/20260911_speed/ found no existing resident-service harness for the planner (only the CoTracker3 tracker has one); building one is out of scope for this task, left as a follow-up
+noise floor sd .018; train seed sd ~.04,-,-,docs/PLAN_TWO_PAPERS_20260830.md §2.1
+previous-gen replicate .356/.974/.314/.820/.980 (mean .689),2 train x 3 scene seeds,-,not recorded (internal note); <private-repo>/experiments/20260831_t2k/
+row5 .763 vs row4 .798 (colour localiser),earlier student,seed 999,paper_data/EXPDUMP_20260901.md §12
+black table .703 vs .715,T2K chain 09-01,-,<private-repo>/experiments/20260831_t2k/ (not recorded (internal note))

@@ -1,0 +1,21 @@
+# weights never enter git (released separately, see README "Checkpoints")
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+runs/
+runs_rl/
+# generated data and results (rendered banks, predictions, goal banks, eval json)
+data/
+results/
+verify/
+wandb/
+# upstream checkout (cloned + patched by the install steps)
+third_party/TraceGen/
+# noise
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# goal banks are downloaded, not committed (banks/README.md)
+banks/*_goals_*.npz

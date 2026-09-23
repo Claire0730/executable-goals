@@ -1,0 +1,51 @@
+{
+  "tag": "mix5_t2k_n3000",
+  "dataset": "data/ds/realcam_t2k_n3000",
+  "epochs": 8,
+  "batch_size": 8,
+  "lr_decoder": 0.00015,
+  "warm_start": "<private-repo>/runs/mix4_realcam_n2400/ckpt/20260827_011014/final_model.pth",
+  "from_scratch": false,
+  "final_ckpt": "<private-repo>/runs/mix5_t2k_n3000/ckpt/20260831_033356/final_model.pth",
+  "provenance": {
+    "tag": "mix5_t2k_n3000",
+    "argv": [
+      "--dataset",
+      "data/ds/realcam_t2k_n3000",
+      "--tag",
+      "mix5_t2k_n3000",
+      "--ckpt",
+      "runs/mix4_realcam_n2400/ckpt/20260827_011014/final_model.pth",
+      "--epochs",
+      "8",
+      "--batch-size",
+      "8",
+      "--lr-decoder",
+      "1.5e-4",
+      "--num-workers",
+      "4"
+    ],
+    "git": "ba7de4d2af700d4d4f02a8d2c2f8f8d350751108",
+    "env": {
+      "MSGEN_T2K": "1",
+      "MSGEN_T2K_W": "0.3"
+    },
+    "active": {
+      "vispos": false,
+      "qfeat": false,
+      "movehead": false,
+      "t2k": true,
+      "cfg": false,
+      "seed": false,
+      "rotloss": false,
+      "depthnorm": false,
+      "lrgroups": false,
+      "wall": false,
+      "depthscale": false,
+      "depthtower": false,
+      "divergence": false,
+      "odestats": false,
+      "steps": false
+    }
+  }
+}

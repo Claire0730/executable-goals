@@ -1,0 +1,24 @@
+# Glossary: names in the paper and identifiers in this repository
+
+The paper *Predicted Futures Are Not Enough: Learning Executable Goals for Robot Manipulation* names the components of
+the system; the code, checkpoints and bank files keep the identifiers under which they were developed. This table maps one
+to the other. Bank suffixes appear in `banks/` and in the `goal_source` field of the evaluation records.
+
+| Paper | Repository identifier | Where |
+|---|---|---|
+| 3D trace world model / 3D Trace Planner (TraceGen backbone fine-tuned on the five tasks) | `mix4_realcam_n2400` (the "earlier trace checkpoint" behind the Rigid Readout rows), `mix5_t2k_n3000` (entity-branch checkpoint; position-head banks), `mix5_t2k_gmap` (goal-map checkpoint) | `checkpoints/planner/`, `scripts/config.sh` (`TAG_MIX4`, `TAG_HEAD`, `TAG_GMAP`) |
+| Entity-Level Goal Readout (the learned prediction-to-execution interface) | `MSGEN_T2K=1` head added by `msgen/patch_t2k.py`; labels from `msgen/labels_t2k.py` | `msgen/` |
+| Entity branch (masked attention pooling, cross attention over geometry tokens, terminal rotation; auxiliary keyframe / contact heads) | "T2K head" in the code: `t2k_kf_*`, `t2k_struct_*`, `t2k_rel_*`, `t2k_contact_*` outputs of `msgen.predict` | `msgen/patch_t2k.py`, `tools/t2k_decode.py` |
+| Map branch / Spatial Goal Map (24x24 goal logits, depth-weighted centroid, unprojection) | "goal map" in the code: `MSGEN_T2K_GMAP=1`, `t2k_gmap` output (576 logits) | `msgen/patch_t2k.py`, `tools/build_gmapdcc.py`, `tools/build_pc_src.py` |
+| Goal composition: map position with entity rotation | bank suffixes `gmapdcc` (StackCube: weighted depth centroid, 0.12 m gate, depth cross-check fallback), `gmappeakNC` (PickCube: map peak + ray, abstain -> entity keyframe), `t2kpos` (LiftPegUpright, PushCube: entity-branch position with the solve rotation), PegInsertionSide: full entity pose (`_t2k`, copied to `_t2kpos`) | `scripts/30_goals.sh`, `tools/mk_fitgoals.py` |
+| PickCube cell of the Entity-Level Goal Readout row in Table II | `sam2mk6`: SAM 2 marker localiser prompted at the goal-map peak, replacing the `gmappeakNC` position where its gates accept a mask | `scripts/31_goals_sam2marker.sh`, `tools/build_sam2marker.py`, `msppo/goal_depth_check.py::op_marker_sam2` |
+| PickCube goal error of Table I (Entity-Level Goal Readout, 31.5 mm) | `gmappeakNC` bank (not the `sam2mk6` bank) | `evidence/goal_table.json` |
+| Rigid Readout (K = 1 / K = 4): Kabsch inside RANSAC on the predicted object tracks; K = 4 averages the traces before fitting | `k1ransac` / `kmean_ransac` banks; `msgen.ksample` (trace mean), `msppo.task_tgbank solve --ransac` | `scripts/30_goals.sh`, `banks/` |
+| Pose-Native Executor (0.8M policy transformer, 20 Hz, one fixed goal per episode) | "student" in the code: `msppo/student.py`, `runs_rl/<tag>/student.pt`; three released executors (see README, "Which executor produced which row") | `checkpoints/student/`, `scripts/config.sh` (`STUDENT_TAG`) |
+| Privileged teachers (task policies with privileged state) | `msppo/kp_teacher.py`, `runs_rl/<tag>/agent.pt`, tags `pc_v9_nz_s0`, `lp_v9_nz_s0`, `pi_v9_frame4_s0`, `sc_v9_nz03b_s0`, `push_v9_nz_s0` | `checkpoints/teacher/` |
+| Privileged guidance variable psi (teacher side) | `MSPPO_FRAME_TASK` / `MSPPO_STACK_FRAME` teacher patches (`msppo/patch_frame.py`, `patch_stack_frame.py`); the executor additionally receives a 4-dimensional psi token (`--psi --psi-token`): a task-constant approach axis and the carry height read from the predicted trace (`tools/psi_bank.py`, `tools/psinat.py`, `*_psinat_*.npz`) | `msppo/`, `banks/` |
+| Distillation with goal perturbations sampled from the measured planner error distribution | `--goal-err-rel` relbanks (`*_relbank_*.npz`) with `--goal-err-scale uniform`; per-step i.i.d. redraw (`msppo/patch_iid_inject.py`, executor `mt5_rciid_gmpc_s0`) or one frozen draw per episode (`msppo/patch_frozen_inject.py`, executor `mt5_rcfz_gmpc_s0`) | `scripts/70_distill.sh` (`INJECT=iid` or `frozen`) |
+| Oracle Goal (designated correct goal) | evaluation without `--goal-delta` (simulator goal); "row 3" in older file names | `scripts/41_eval_row3.sh`, `paper_results/table2/oracle_gmpc_*.json` |
+| Final pipeline / final routing (Entity-Level Goal Readout row) | "row 4" in older file names: `scripts/40_eval_row4.sh`, `ROW4_GOAL` in `scripts/config.sh` | `paper_results/table2/final_*.json` |
+| Online perception with CoTracker3 (Fig. 3) | `msppo/tracked_perception.py` line ("row 6"), not part of this release; the Table II records use the simulator's per-step object correspondence | -- |
+| Evaluation seeds 999 / 997 / 998, 256 scenes each, pooled to 768 episodes | `SEED`, `N_EP` in `scripts/config.sh`; one record per seed in `paper_results/table2/` | `scripts/verify_main_table.sh` |

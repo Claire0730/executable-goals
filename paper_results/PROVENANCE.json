@@ -1,0 +1,85 @@
+{
+  "table2": {
+    "oracle_gmpc": {
+      "executor": "mt5_rcfz_gmpc_s0",
+      "goal": "true goal (simulator)",
+      "files": {
+        "999": "experiments/20260911_row3/row3_mt5_rcfz_gmpc_s0_999.json",
+        "997": "experiments/20260912_goal_causal/e1/rot_d0_997.json",
+        "998": "experiments/20260912_goal_causal/e2/gt_998.json"
+      }
+    },
+    "rigid_k1_gmpc": {
+      "executor": "mt5_rcfz_gmpc_s0",
+      "goal": "<task>_goals_mix4_realcam_n2400_<seed>_k1ransac.npz",
+      "files": {
+        "997": "experiments/20260912_goal_causal/e2/k1_997.json",
+        "998": "experiments/20260912_goal_causal/e2/k1_998.json",
+        "999": "experiments/20260912_goal_causal/e2/k1_999.json"
+      }
+    },
+    "rigid_k4_gmpc": {
+      "executor": "mt5_rcfz_gmpc_s0",
+      "goal": "<task>_goals_mix4_realcam_n2400_<seed>_kmean_ransac.npz",
+      "files": {
+        "997": "experiments/20260912_goal_causal/e2/solve_997.json",
+        "998": "experiments/20260912_goal_causal/e2/solve_998.json",
+        "999": "experiments/20260912_goal_causal/e2/solve_999.json"
+      }
+    },
+    "rigid_k4_pickcube_t2k_s0": {
+      "executor": "mt5_rcfz_t2k_s0",
+      "goal": "pickcube_goals_mix5_t2k_n3000_999_k4ransac.npz",
+      "files": {
+        "999": "experiments/20260831_t2k/row4_k4solver_999.json"
+      }
+    },
+    "final_rciid": {
+      "executor": "mt5_rciid_gmpc_s0",
+      "goal": "stack gmapdcc; liftpeg/peginsert/pushcube t2kpos (pickcube cell taken from final_pickcube_sam2_rciid)",
+      "files": {
+        "997": "experiments/20260912_goal_causal/episode_match/eval/row4_mt5_rciid_gmpc_s0_997.json",
+        "998": "experiments/20260912_goal_causal/episode_match/eval/row4_mt5_rciid_gmpc_s0_998.json",
+        "999": "experiments/20260912_goal_causal/episode_match/eval/row4_mt5_rciid_gmpc_s0_999.json"
+      }
+    },
+    "final_pickcube_sam2_rciid": {
+      "executor": "mt5_rciid_gmpc_s0",
+      "goal": "pickcube_goals_mix5_t2k_gmap_<seed>_sam2mk6.npz",
+      "files": {
+        "997": "experiments/20260915_rciid_ladder/e2/sam2pick_997.json",
+        "998": "experiments/20260915_rciid_ladder/e2/sam2pick_998.json",
+        "999": "experiments/20260915_rciid_ladder/e2/sam2pick_999.json"
+      }
+    }
+  },
+  "fig7_perturbation_gmpc": {
+    "executor": "mt5_rcfz_gmpc_s0",
+    "files": {
+      "trans_m0_999": "experiments/20260912_goal_causal/e1/trans_m0_999.json",
+      "trans_m0_997": "experiments/20260912_goal_causal/e1/trans_m0_997.json",
+      "trans_m5_999": "experiments/20260912_goal_causal/e1/trans_m5_999.json",
+      "trans_m5_997": "experiments/20260912_goal_causal/e1/trans_m5_997.json",
+      "trans_m10_999": "experiments/20260912_goal_causal/e1/trans_m10_999.json",
+      "trans_m10_997": "experiments/20260912_goal_causal/e1/trans_m10_997.json",
+      "trans_m20_999": "experiments/20260912_goal_causal/e1/trans_m20_999.json",
+      "trans_m20_997": "experiments/20260912_goal_causal/e1/trans_m20_997.json",
+      "trans_m30_999": "experiments/20260912_goal_causal/e1/trans_m30_999.json",
+      "trans_m30_997": "experiments/20260912_goal_causal/e1/trans_m30_997.json",
+      "trans_m50_999": "experiments/20260912_goal_causal/e1/trans_m50_999.json",
+      "trans_m50_997": "experiments/20260912_goal_causal/e1/trans_m50_997.json",
+      "trans_m80_999": "experiments/20260912_goal_causal/e1/trans_m80_999.json",
+      "trans_m80_997": "experiments/20260912_goal_causal/e1/trans_m80_997.json",
+      "trans_m120_999": "experiments/20260912_goal_causal/e1/trans_m120_999.json",
+      "trans_m120_997": "experiments/20260912_goal_causal/e1/trans_m120_997.json"
+    }
+  },
+  "supplementary_gmpc_final_routing": {
+    "executor": "mt5_rcfz_gmpc_s0",
+    "files": {
+      "999": "experiments/20260906_batch/row4_mt5_rcfz_gmpc_s0_nc_999.json",
+      "997": "experiments/20260911_row4_997998/row4_mt5_rcfz_gmpc_s0_nc_997.json",
+      "998": "experiments/20260911_row4_997998/row4_mt5_rcfz_gmpc_s0_nc_998.json"
+    }
+  }
+}

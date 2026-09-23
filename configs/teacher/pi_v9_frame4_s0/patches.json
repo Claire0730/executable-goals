@@ -1,0 +1,14 @@
+{
+  "patches": [
+    "msppo/patch_frame.py"
+  ],
+  "env": {
+    "MSPPO_FRAME_WH": "0",
+    "MSPPO_FRAME_WPUSH": "0",
+    "MSPPO_FRAME_K1_BASE": "-0.28,-0.56,-0.78",
+    "MSPPO_EVAL_TASK": "peginsert",
+    "MSPPO_FRAME_TASK": "peginsert"
+  },
+  "git": "ba7de4d2af700d4d4f02a8d2c2f8f8d350751108",
+  "note": "frame teacher (generic): psi obs (+4 before kp) + push/approach/carry-band rewards"
+}

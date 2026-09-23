@@ -1,0 +1,745 @@
+diff --git a/dataio/datasets.py b/dataio/datasets.py
+index 6205ed2..004f1b2 100644
+--- a/dataio/datasets.py
++++ b/dataio/datasets.py
+@@ -444,6 +444,43 @@ class EpisodePointDataset(Dataset):
+     def __len__(self) -> int:
+         return len(self.sample_indices)
+ 
++    def _attractor_for(self, episode_metadata) -> torch.Tensor:
++        """(3,) attractor for this episode: (u_frac, v_frac, depth_m).
++
++        Read from `<dataset_dir>/attractors.json`, produced by
++        integration/experiments/20260731_mechC/make_attractors.py. Cached per dataset dir on
++        first use. Missing file or missing clip -> zeros, which is exactly the pre-mechanism-C
++        behaviour, so an absent label degrades to "no conditioning" instead of crashing a run.
++        A missing clip is warned about ONCE per dataset so a half-labelled dataset cannot
++        train silently.
++        """
++        ep_dir = episode_metadata.get('episode_dir', None)
++        if ep_dir is None:
++            return torch.zeros(3, dtype=torch.float32)
++        ep_dir = Path(ep_dir)
++        ds_dir = ep_dir.parent
++        if not hasattr(self, '_attr_cache'):
++            self._attr_cache = {}
++            self._attr_warned = set()
++        table = self._attr_cache.get(str(ds_dir))
++        if table is None:
++            f = ds_dir / "attractors.json"
++            try:
++                with open(f) as fh:
++                    table = json.load(fh)
++            except Exception:
++                table = {}
++            self._attr_cache[str(ds_dir)] = table
++            logger.info(f"[attractor] {len(table)} labels loaded from {f}")
++        rec = table.get(ep_dir.name)
++        if rec is None:
++            if str(ds_dir) not in self._attr_warned:
++                self._attr_warned.add(str(ds_dir))
++                logger.warning(f"[attractor] no label for {ep_dir.name} in {ds_dir} "
++                               f"(and possibly others) -> conditioning on zeros")
++            return torch.zeros(3, dtype=torch.float32)
++        return torch.tensor(rec["attractor"], dtype=torch.float32)
++
+     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+         """
+         Get a single sample from the dataset using lazy loading.
+@@ -613,6 +650,11 @@ class EpisodePointDataset(Dataset):
+                 'trajectory': gt_trajectory[:, :self.trajectory_horizon + 1, :],  # [N, H+1, 2] first keypoint + future trajectory
+                 'trajectory_mask': gt_trajectory_mask[:, :self.trajectory_horizon + 1],  # [N, H+1] mask for valid trajectory points
+                 'movement_bool': movement_bool,  # [K] boolean array indicating movement > 0.05
++                # MECHANISM C: (u_frac, v_frac, depth_m) of where the object ends up, i.e.
++                # the attractor. Zeros when no label file exists, which reproduces the
++                # pre-C behaviour exactly (the decoder's conditioning channels then carry
++                # a constant and the graft's zero-init columns have nothing to learn from).
++                'attractor': self._attractor_for(episode_metadata),
+                 'orig_size': torch.tensor(orig_size, dtype=torch.float32),  # (W, H)
+                 'episode_id': episode_metadata['episode_id'],
+                 'frame_id': frame_id,
+@@ -768,6 +810,9 @@ class PointDatasetCollator:
+ 
+         # Stack other metadata
+         orig_sizes = torch.stack([sample['orig_size'] for sample in batch])
++        # MECHANISM C: (B, 3) attractor in (u_frac, v_frac, depth_m)
++        attractor = (torch.stack([sample['attractor'] for sample in batch])
++                     if 'attractor' in batch[0] else None)
+ 
+         # Keep episode and frame IDs as lists
+         episode_ids = [sample['episode_id'] for sample in batch]
+@@ -783,6 +828,7 @@ class PointDatasetCollator:
+             'movement_bool': movement_bool,  # [B, num_kps] boolean array indicating movement > 0.05
+             'valid_steps': valid_steps,  # [B, num_kps] boolean array indicating valid steps
+             'orig_size': orig_sizes,  # [B, 2]
++            'attractor': attractor,   # [B, 3] (u_frac, v_frac, depth_m) or None
+             'episode_id': episode_ids,
+             'frame_id': frame_ids,
+             'trajectory': trajectories,  # [B, trajectory_horizon, 3]
+diff --git a/losses/trajectory_loss.py b/losses/trajectory_loss.py
+index a833d4b..b07c1dd 100644
+--- a/losses/trajectory_loss.py
++++ b/losses/trajectory_loss.py
+@@ -75,7 +75,18 @@ class TrajectoryLoss(nn.Module):
+             noise_target = rearrange(noise_target, 'b c t h w -> b (h w) t c')
+             traj_mask = trajectory_mask[:, :, 1:, :]  # only care about the non-keypoint mask (not horizon-wise mask)
+ 
+-            diffusion_loss = F.mse_loss(noise_pred * traj_mask, noise_target * traj_mask)  # [B, H, 2]
++            # #4 MOTION-WEIGHTED loss: up-weight points that MOVE (per-clip movement_bool
++            # from the dataset, dataio/datasets.py:424), so the denoiser stops averaging with
++            # the static-background majority — the root of amplitude collapse / non-convergence.
++            # motion_weight_alpha=0 reproduces the original uniform MSE exactly.
++            alpha = float(getattr(self.cfg, 'motion_weight_alpha', 0.0))
++            mb = targets.get('movement_bool', None) if isinstance(targets, dict) else None
++            if alpha > 0.0 and mb is not None:
++                w = (1.0 + alpha * mb.float())[:, :, None, None]        # [B, N, 1, 1]
++                se = ((noise_pred - noise_target) ** 2) * traj_mask * w
++                diffusion_loss = se.sum() / (traj_mask * w).sum().clamp_min(1e-8)
++            else:
++                diffusion_loss = F.mse_loss(noise_pred * traj_mask, noise_target * traj_mask)  # [B, H, 2]
+         else:
+             traj_pred = predictions['trajectory_pred']  # [B, N, H, 2]
+             traj_target = targets['trajectory'][:, :, 1:]  # [B, N, H, 2]
+diff --git a/models/decoder/cogvideox_flow.py b/models/decoder/cogvideox_flow.py
+index 85ada3c..46ff094 100644
+--- a/models/decoder/cogvideox_flow.py
++++ b/models/decoder/cogvideox_flow.py
+@@ -114,6 +114,19 @@ class CogVideoXDecoder_flow(nn.Module):
+         self.put_frames_in_channels = put_frames_in_channels
+         self.input_channels = in_channels * put_frames_in_channels
+         self.output_channels = out_channels * put_frames_in_channels
++        # QPOS conditioning: when in_channels > out_channels the surplus input channels
++        # carry the CLEAN per-query position (u, v, depth). The model still predicts only
++        # out_channels of motion, so input != output by construction.
++        self.use_qpos = in_channels > out_channels
++        self.qpos_channels = self.input_channels - self.output_channels
++        # u, v arrive as FRACTIONS of the image in [0, 1] -- the dataset's own convention
++        # (dataio/transforms.py:340-356 NormalizeTransform divides by width/height and clips),
++        # and trajectory step 0 is what feeds this at training time. Verified on a real batch:
++        # step0 u in [0.249, 0.287], v in [0.500, 0.544]. Normalising by 384 (an earlier
++        # draft of this code) maps [0,1] -> [-1, -0.995], i.e. a CONSTANT, which silently
++        # turns the whole qpos mechanism into a no-op.
++        self.qpos_depth_mid = 0.5         # metres; TraceForge depth on this data is 0.35-0.55
++        self.qpos_depth_scale = 0.25      # -> z ~ [-1, 1]; revisit for GT metric depth (~1.0 m)
+         self.num_frames = num_frames // put_frames_in_channels
+         # breakpoint()
+         # self.device = device
+@@ -213,7 +226,19 @@ class CogVideoXDecoder_flow(nn.Module):
+         # Use data's device directly
+         device = data.device
+         data = (data - self.data_act_bias.to(device)) / self.data_act_scale.to(device)
+-        data = torch.clamp(data, -1, 1)
++        # The clamp is a TRAINING-ONLY operation: this method has exactly one call site
++        # (`:415`, forward_diffusion_training). The inference path only ever calls
++        # `unnormalize_act_data` (`:698`), which is pure affine. So `act_clamp` cannot
++        # create a train/inference mismatch, and it does not need to be stored in the ckpt.
++        #
++        # Why it is a knob (2026-07-30): the per-step delta distribution is heavy-tailed
++        # (measured std 0.0061 but max 0.083 = ~13 sigma). Shrinking data_act_scale toward
++        # the data's own std -- the point of the SNR fix -- would push 13% of the MOVING
++        # deltas past +-1, i.e. hard-clamp away exactly the large motions that carry the
++        # task. 'none' keeps the affine map exact and lets the target span >1; flow
++        # matching does not require the data to live inside [-1, 1].
++        if getattr(self, 'act_clamp', 'hard') != 'none':
++            data = torch.clamp(data, -1, 1)
+         return rearrange(data, 'b h w t c -> b t c h w')
+ 
+     def unnormalize_act_data(self, data):
+@@ -279,10 +304,14 @@ class CogVideoXDecoder_flow(nn.Module):
+         
+         # Handle put_frames_in_channels conversion
+         if hasattr(self, 'put_frames_in_channels') and self.put_frames_in_channels > 1:
+-            # Check if input is already converted (from forward_diffusion_training)
+-            # Original format: [B, C, T, H, W] where C=3, T=16
+-            # Converted format: [B, C*put_frames_in_channels, T//put_frames_in_channels, H, W] where C*put_frames_in_channels=12, T//put_frames_in_channels=4
+-            expected_converted_channels = 3 * self.put_frames_in_channels  # 3 * 4 = 12
++            # Check if input is already converted (from forward_diffusion_training).
++            # Original format:  [B, C, T, H, W]                  (C = in_channels, T = 32)
++            # Converted format: [B, C*p, T//p, H, W]             (p = put_frames_in_channels)
++            # This must be the decoder's OWN input width. It was hard-coded to
++            # `3 * put_frames_in_channels`, which is correct only when in_channels == 3; a
++            # qpos-conditioned input (12 channels) failed the test, got folded a SECOND
++            # time to 24 channels, and hit the patch projection as 96 features vs 48.
++            expected_converted_channels = self.input_channels
+ 
+             # breakpoint()
+             
+@@ -370,6 +399,7 @@ class CogVideoXDecoder_flow(nn.Module):
+         trunk_conditioning: torch.Tensor,
+         target_video: torch.Tensor,
+         diffusion_loss,
++        attractor: Optional[torch.Tensor] = None,
+         **kwargs
+     ) -> Dict[str, torch.Tensor]:
+         """Handle diffusion training with CogVideoX-specific preprocessing.
+@@ -387,7 +417,13 @@ class CogVideoXDecoder_flow(nn.Module):
+             # WARNING: log the trunk_conditioning and expected_seq_len
+             logger.warning(f"Expected sequence length {expected_seq_len} does not match actual sequence length {trunk_conditioning.shape[-2]}")
+         # breakpoint()
+-        target_video = target_video[:, :, 1:, :]  # we don't need first keypoint, since it's always same across all the dataset
++        # QPOS: step 0 IS the query position. Previously discarded; now kept as clean
++        # conditioning channels so the model knows WHICH query each token is.
++        qpos_src = target_video[:, :, 0, :].detach().clone()      # (B, N, 3)
++        # MECHANISM C: append the ATTRACTOR (same (u_frac, v_frac, depth_m) frame), broadcast
++        # to every query, so the conditioning source has qpos_channels = 6 and in_channels 9.
++        qpos_src = self._append_attractor(qpos_src, attractor)
++        target_video = target_video[:, :, 1:, :]  # motion steps only (targets)
+ 
+         # reshape target_video to [B, 20, 20, 16, 3]
+         target_video = target_video.reshape(target_video.shape[0], int(math.sqrt(target_video.shape[1])), int(math.sqrt(target_video.shape[1])), target_video.shape[2], 3)
+@@ -434,8 +470,19 @@ class CogVideoXDecoder_flow(nn.Module):
+         xt = (1 - t_float) * latent_video + t_float * noise_future
+         dx_dt_true = -latent_video + noise_future
+ 
++        # Concatenate the CLEAN query-position channels (never noised) so every spatial
++        # token carries its own (u, v, depth). Output stays motion-only.
++        if getattr(self, "use_qpos", False):
++            Bc, Cc, Tc, Hc, Wc = latent_video.shape
++            p = getattr(self, "put_frames_in_channels", 1)
++            qpos = self._qpos_latent(qpos_src, Bc, Tc * p, Hc, Wc,
++                                     latent_video.device, latent_video.dtype)
++            model_in = torch.cat([xt, self._fold_frames(qpos)], dim=1)
++        else:
++            model_in = xt
++
+         # Forward through CogVideoX decoder
+-        dx_dt_pred = self(xt, timesteps, trunk_conditioning)['video']
++        dx_dt_pred = self(model_in, timesteps, trunk_conditioning)['video']
+ 
+         # revert the shape of dx_dt_true to match dx_dt_pred
+         if hasattr(self, 'put_frames_in_channels') and self.put_frames_in_channels > 1:
+@@ -457,6 +504,136 @@ class CogVideoXDecoder_flow(nn.Module):
+             'actions_norm': latent_video
+         }
+ 
++    def _qpos_latent(self, first_keypoint, B, T, H, W, device, dtype):
++        """Query POSITION as clean conditioning channels, shaped like the latent.
++
++        Why this exists: the query position was already present as trajectory step 0 and
++        was deliberately discarded ("it's always same across all the dataset") -- true
++        only for a UNIFORM grid. Once queries are object-dense or learned-allocated,
++        step 0 is exactly the per-query information the model needs, and without it the
++        model can only emit a common translation (measured signature: rigidity 0.006 m,
++        displacement 0.96, rotation recovery 0.035 = pure translation).
++
++        first_keypoint: (B, N, 3) = (u_frac, v_frac, depth_m) of each query, where u_frac
++        and v_frac are fractions of image width/height in [0, 1] -- NOT pixels. This is the
++        dataset's native convention and therefore what trajectory step 0 supplies during
++        training; every inference caller must match it.
++        Returns (B, C, T, H, W), constant over time, normalised to ~[-1, 1]. NOT passed
++        through normalize_act_data -- that statistic is for motion deltas, not positions.
++
++        MECHANISM C (attractor conditioning, 2026-07-31): C may be 6 instead of 3, in which
++        case channels 3:6 carry the ATTRACTOR in the same (u_frac, v_frac, depth_m) frame,
++        broadcast identically to every query. Handling it here -- rather than in a second
++        parallel conditioning path -- means the `use_qpos` gate, the fold, the concat and the
++        zero-init graft all keep working unchanged; only `in_channels` grows 6 -> 9.
++        Motivation is measured: the model's predicted endpoint DIRECTION is a near-constant
++        prior (spread 2.1 deg vs the task's 52.2 deg) at 150 epochs, and no warm-up length in
++        {2,5,10,20,30,40} recovers it, so the direction information has to be handed over
++        explicitly rather than coaxed out. See experiments/20260730_snr_fix/RESULTS.md.
++        """
++        C = self._cond_channels()
++        if first_keypoint is None:
++            return torch.zeros(B, C, T, H, W, device=device, dtype=dtype)
++        q = first_keypoint
++        if q.dim() == 4:                       # (B,N,1,3) -> (B,N,3)
++            q = q[:, :, 0, :]
++        q = q[..., :C].to(device=device, dtype=torch.float32)
++        if q.shape[-1] != C:
++            raise ValueError(
++                f"_qpos_latent was built for {C} conditioning channels "
++                f"(qpos_channels = in_channels - out_channels) but got a source with "
++                f"{q.shape[-1]}. With mechanism C the caller must concatenate the attractor: "
++                f"cat([query_pos(B,N,3), attractor(B,1,3).expand(B,N,3)], dim=-1)."
++            )
++        if q.shape[1] != H * W:                # tolerate N != H*W
++            q = q[:, :H * W, :]
++        # Guard the convention explicitly: pixel-scale input would compress u,v to a
++        # constant and make this a silent no-op, which is precisely the failure this
++        # module exists to remove. Fail loudly instead.
++        uv_max = float(torch.nan_to_num(q[..., :2], nan=0.0).abs().max()) if q.numel() else 0.0
++        if uv_max > 1.5:
++            raise ValueError(
++                f"_qpos_latent expects u,v as fractions of the image in [0,1]; got "
++                f"max|u,v| = {uv_max:.1f}, which looks like pixels. Divide by image "
++                f"width/height before calling."
++            )
++        # Normalise in (u, v, depth) TRIPLES: with mechanism C the source is 6 channels
++        # (query position, then attractor) and both triples live in the same frame, so the
++        # same map applies to each. Handling only channels 0:3 here would silently drop the
++        # attractor -- the mechanism would be wired and still be a no-op.
++        if q.shape[-1] % 3 != 0:
++            raise ValueError(f"_qpos_latent expects channels in (u,v,depth) triples, "
++                             f"got {q.shape[-1]}")
++        tri = []
++        for g in range(q.shape[-1] // 3):
++            b = 3 * g
++            tri.append(torch.stack([
++                q[..., b + 0] * 2.0 - 1.0,
++                q[..., b + 1] * 2.0 - 1.0,
++                (q[..., b + 2] - self.qpos_depth_mid) / self.qpos_depth_scale,
++            ], dim=-1))
++        qn = torch.cat(tri, dim=-1)                               # (B,N,C)
++        qn = torch.nan_to_num(qn, nan=0.0, posinf=0.0, neginf=0.0).clamp(-4.0, 4.0)
++        qn = qn.reshape(B, H, W, -1).permute(0, 3, 1, 2)           # (B,C,H,W)
++        Cn = qn.shape[1]
++        return qn[:, :, None, :, :].expand(B, Cn, T, H, W).to(dtype)
++
++    def _cond_channels(self):
++        """Per-query conditioning channels BEFORE the frame fold.
++
++        `self.qpos_channels = input_channels - output_channels` is in FOLDED units: both
++        sides were already multiplied by `put_frames_in_channels`. `_qpos_latent` builds a
++        pre-fold (B, C, T, H, W) block that `_fold_frames` later multiplies by p, so the
++        count it needs is qpos_channels // p.
++          M4 (in 6, out 3, p 2):        qpos_channels 6  -> C = 3   (the value M4 hard-coded)
++          mechanism C (in 9, out 3, p 2): qpos_channels 12 -> C = 6
++        Using the folded number here is exactly the unit bug the plumbing probe caught.
++        """
++        p = int(getattr(self, "put_frames_in_channels", 1) or 1)
++        return max(1, int(getattr(self, "qpos_channels", 3) or 3) // p)
++
++    def _append_attractor(self, qpos_src, attractor):
++        """Concatenate the global attractor onto a per-query conditioning source.
++
++        qpos_src : (B, N, 3) per-query (u_frac, v_frac, depth_m)   [or (B,N,1,3)]
++        attractor: (B, 3) the same three quantities for the GOAL, identical for every query.
++
++        Returns (B, N, 3) unchanged when this decoder was not built for mechanism C
++        (qpos_channels == 3), so the pre-C behaviour is bit-identical. When it WAS built for
++        C (qpos_channels == 6) a missing attractor becomes zeros rather than a crash, and the
++        zeros case is logged once -- silently conditioning on zeros is the failure mode that
++        would make the whole arm a no-op (cf. the M4 unit-mismatch bug).
++        """
++        want = self._cond_channels()
++        if qpos_src is None or want <= 3:
++            return qpos_src
++        q = qpos_src
++        if q.dim() == 4:
++            q = q[:, :, 0, :]
++        B, N = q.shape[0], q.shape[1]
++        if attractor is None:
++            if not getattr(self, "_warned_no_attractor", False):
++                self._warned_no_attractor = True
++                logger.warning("decoder was built with qpos_channels=%d (mechanism C) but no "
++                               "attractor was passed -> conditioning on ZEROS", want)
++            a = torch.zeros(B, 3, device=q.device, dtype=q.dtype)
++        else:
++            a = attractor
++            if a.dim() == 3:
++                a = a[:, 0, :]
++            a = a[..., :3].to(device=q.device, dtype=q.dtype)
++        return torch.cat([q, a[:, None, :].expand(B, N, 3)], dim=-1)
++
++    def _fold_frames(self, x):
++        """[B,C,T,H,W] -> [B,C*p,T/p,H,W] with p = put_frames_in_channels (same as train)."""
++        p = getattr(self, "put_frames_in_channels", 1)
++        if p <= 1:
++            return x
++        B, C, T, H, W = x.shape
++        return (x.view(B, C, T // p, p, H, W)
++                 .permute(0, 1, 3, 2, 4, 5).contiguous()
++                 .view(B, C * p, T // p, H, W))
++
+     def predict_trajectory(
+         self,
+         trunk_conditioning: torch.Tensor,
+@@ -464,10 +641,15 @@ class CogVideoXDecoder_flow(nn.Module):
+         num_inference_steps: int = 50,
+         guidance_scale: float = 2.0,
+         generator: Optional[torch.Generator] = None,
++        first_keypoint: Optional[torch.Tensor] = None,
++        attractor: Optional[torch.Tensor] = None,
+     ) -> torch.Tensor:
+         """
+         Generate a video from text embedding or prompt with CFG support.
+-        
++
++        first_keypoint: (B, N, 3) query positions (u_px, v_px, depth_m). Required when
++        the decoder was built with qpos conditioning (in_channels > out_channels).
++
+         Args:
+             text_embedding: Input text embedding [1, seq_len, embed_dim] (optional if prompt provided)
+             prompt: Text prompt string (optional if text_embedding provided)
+@@ -513,7 +695,10 @@ class CogVideoXDecoder_flow(nn.Module):
+         
+         # Initialize latents with random noise in [B, T, C, H, W] format
+         # Note: self.num_frames is already adjusted for put_frames_in_channels in __init__
+-        latents_shape = (batch_size, self.num_frames, self.input_channels, self.frame_size, self.frame_size)  # divide by 2 because we have first frame latents and future frames latents
++        # With qpos conditioning the DENOISED tensor is motion-only (output_channels);
++        # the position channels are concatenated fresh at every step and never noised.
++        _lat_ch = self.output_channels if getattr(self, "use_qpos", False) else self.input_channels
++        latents_shape = (batch_size, self.num_frames, _lat_ch, self.frame_size, self.frame_size)
+         latents = torch.randn(latents_shape, generator=generator, device=trunk_conditioning.device, dtype=transformer_dtype)
+ 
+         # Scale initial noise by scheduler's sigma
+@@ -530,24 +715,31 @@ class CogVideoXDecoder_flow(nn.Module):
+         
+         old_pred_original_sample = None  # Initialize for DPM scheduler
+ 
++        # Pre-build the clean query-position channels in [B, T, C, H, W] layout.
++        qpos_btchw = None
++        if getattr(self, "use_qpos", False):
++            p_fold = getattr(self, "put_frames_in_channels", 1)
++            _q = self._qpos_latent(self._append_attractor(first_keypoint, attractor),
++                                   batch_size,
++                                   self.num_frames * p_fold, self.frame_size, self.frame_size,
++                                   latents.device, latents.dtype)          # (B,3,T,H,W)
++            qpos_btchw = self._fold_frames(_q).permute(0, 2, 1, 3, 4)       # (B,T,C*p,H,W)
++
+         # breakpoint()
+         for i, t in enumerate(timesteps):
+-            # Prepare latent model input for CFG
+-            if do_classifier_free_guidance:
+-                latent_model_input = torch.cat([latents] * 2)
+-            else:
+-                latent_model_input = latents
+-                
+-            # Scale model input
+-            scale_factor = getattr(scheduler, 'sigmas', None)
+-
+-            # Scale model input (if method is available on scheduler)
++            # Scale the MOTION latents first, then append the clean position channels,
++            # then duplicate for CFG -- so scaling never touches the conditioning.
++            scaled = latents
+             if hasattr(scheduler, 'scale_model_input'):
+-                latent_model_input = scheduler.scale_model_input(latent_model_input, t)
+-            else:
+-                # Flow matching schedulers don't use scale_model_input
++                scaled = scheduler.scale_model_input(scaled, t)
++            elif i == 0:
+                 print(f"Scheduler {type(scheduler).__name__} doesn't use scale_model_input, using input as-is")
+ 
++            if qpos_btchw is not None:
++                scaled = torch.cat([scaled, qpos_btchw.to(scaled.dtype)], dim=2)
++
++            latent_model_input = torch.cat([scaled] * 2) if do_classifier_free_guidance else scaled
++
+             # Expand timestep for batch
+             timestep = t.expand(latent_model_input.shape[0]).to(transformer_dtype)
+             
+diff --git a/models/model_flow.py b/models/model_flow.py
+index 3a8b746..cfed6c3 100644
+--- a/models/model_flow.py
++++ b/models/model_flow.py
+@@ -13,7 +13,7 @@
+ # limitations under the License.
+ 
+ import logging
+-from typing import Dict, List, Union
++from typing import Dict, List, Optional, Union
+ 
+ import torch
+ import torch.nn as nn
+@@ -241,6 +241,7 @@ class TrajectoryFlow(nn.Module):
+         target_trajectory: torch.Tensor,
+         first_keypoint: torch.Tensor,
+         diffusion_loss,
++        attractor: Optional[torch.Tensor] = None,
+     ) -> Dict[str, torch.Tensor]:
+         """Forward pass for diffusion training."""
+         device = images.device
+@@ -260,6 +261,7 @@ class TrajectoryFlow(nn.Module):
+             trunk_conditioning=combined_features,
+             target_video=target_trajectory,
+             diffusion_loss=diffusion_loss,
++            attractor=attractor,          # MECHANISM C (None -> pre-C behaviour)
+         )
+         
+         return outputs
+@@ -274,6 +276,7 @@ class TrajectoryFlow(nn.Module):
+         noise_scheduler,
+         num_inference_steps: int = 100,
+         guidance_scale: float = 2.0,
++        attractor: Optional[torch.Tensor] = None,
+     ) -> torch.Tensor:
+         """Predict future trajectory."""
+         self.eval()
+@@ -289,11 +292,16 @@ class TrajectoryFlow(nn.Module):
+             combined_features = torch.cat([vision_features, text_features], dim=1)
+             
+             # Generate trajectory
++            # first_keypoint was previously accepted and IGNORED here, which is why the
++            # model never knew where its queries were. Pass it through so the decoder can
++            # build the per-query position conditioning.
+             complete_trajectory = self.diffusion_decoder.predict_trajectory(
+                 trunk_conditioning=combined_features,
+                 scheduler=noise_scheduler,
+                 num_inference_steps=num_inference_steps,
+-                guidance_scale=guidance_scale
++                guidance_scale=guidance_scale,
++                first_keypoint=first_keypoint,
++                attractor=attractor,      # MECHANISM C (None -> pre-C behaviour)
+             )
+         
+         return complete_trajectory
+diff --git a/test_helpers.py b/test_helpers.py
+index 742f471..ad08b40 100644
+--- a/test_helpers.py
++++ b/test_helpers.py
+@@ -331,7 +331,9 @@ def predict_trajectory_simple(
+     test_path: Optional[str] = None,
+     image_files: Optional[List[str]] = None,
+     guidance_scale: float = 1.0,
+-    grid_size: int = 20
++    grid_size: int = 20,
++    first_keypoint: Optional[torch.Tensor] = None,
++    attractor: Optional[torch.Tensor] = None,
+ ) -> torch.Tensor:
+     """Simple API to predict trajectory from images and texts.
+     
+@@ -350,6 +352,8 @@ def predict_trajectory_simple(
+         image_files: List of image file paths (for movement bool computation) - OPTIONAL
+         guidance_scale: Guidance scale for inference (default: 1.0)
+         grid_size: Grid size for trajectory points (default: 20x20 = 400 points)
++        first_keypoint: [B, N, 3] query positions (u_px, v_px, depth_m). Needed by a
++            qpos-conditioned decoder; harmless (ignored) for the original model.
+         
+     Returns:
+         predicted_trajectory: [B, N, T, 2] predicted trajectory
+@@ -361,7 +365,10 @@ def predict_trajectory_simple(
+             texts=texts,
+             depth=depth_maps,
+             is_depth_valid=is_depth_valid,
+-            first_keypoint=None,
++            # was hard-coded None, so the model never received its query positions
++            first_keypoint=first_keypoint,
++            # MECHANISM C: (B,3) attractor in (u_frac, v_frac, depth_m). None -> pre-C.
++            attractor=attractor,
+             noise_scheduler=trainer.criterion.noise_scheduler,
+             guidance_scale=guidance_scale
+         )
+@@ -409,6 +416,8 @@ def create_trajectory_visualization(
+         test_path: Path to test dataset
+         image_files: List of image file paths
+         grid_size: Grid size for trajectory points (default: 20x20 = 400 points)
++        first_keypoint: [B, N, 3] query positions (u_px, v_px, depth_m). Needed by a
++            qpos-conditioned decoder; harmless (ignored) for the original model.
+         movement_threshold: Minimum total movement to include trajectory (default: 0.2)
+         max_trajectories: Maximum number of trajectories to show (default: 50)
+         filename_suffix: Optional custom suffix to append to filename (default: None, uses split name)
+diff --git a/train.py b/train.py
+index 59d17ae..b281502 100644
+--- a/train.py
++++ b/train.py
+@@ -132,7 +132,14 @@ def main():
+                     value = 'True'
+                 elif value.lower() == 'false':
+                     value = 'False'
+-                value = eval(value)  # Handles int, float, bool, lists, etc.
++                # Handles int, float, bool, lists, etc. A BARE STRING (e.g.
++                # `act_scale_mode=explicit`) is not a Python literal, so eval raises
++                # NameError/SyntaxError; fall back to the raw string instead of crashing.
++                # Strictly more permissive: anything that eval'd before still does.
++                try:
++                    value = eval(value)  # noqa: S307 - trusted CLI input
++                except (NameError, SyntaxError):
++                    pass
+                 OmegaConf.update(cfg, key, value, merge=True)
+             else:
+                 if rank == 0:
+@@ -160,6 +167,19 @@ def main():
+     if args.resume:
+         trainer.load_checkpoint(args.resume)
+         all_actions_min, all_actions_max = trainer.action_min, trainer.action_max
++        # An `act_scale_mode` override MUST win over the resumed statistic, otherwise the
++        # SNR fix is a silent no-op on every warm-up run (all of ours resume from the
++        # Generalist ckpt, whose stored action_min/max are the upstream constants).
++        if str(cfg.get('act_scale_mode', 'const')).lower() != 'const':
++            _new_min, _new_max = trainer.get_action_statistics()
++            if rank == 0:
++                logger.info(f"[act_scale] OVERRIDING resumed statistic: "
++                            f"min {all_actions_min.tolist() if all_actions_min is not None else None} "
++                            f"-> {_new_min.tolist()} | "
++                            f"max {all_actions_max.tolist() if all_actions_max is not None else None} "
++                            f"-> {_new_max.tolist()}")
++            all_actions_min, all_actions_max = _new_min, _new_max
++            trainer.action_min, trainer.action_max = _new_min, _new_max
+     else:
+         # get statistics for action
+         all_actions_min, all_actions_max = trainer.get_action_statistics()
+@@ -170,9 +190,15 @@ def main():
+ 
+     # set min and max of diffusion policy normalization
+     if hasattr(trainer.model, "module"):
+-        trainer.model.module.diffusion_decoder.set_data_act_statistics(all_actions_max, all_actions_min)
++        _dec = trainer.model.module.diffusion_decoder
+     else:
+-        trainer.model.diffusion_decoder.set_data_act_statistics(all_actions_max, all_actions_min)
++        _dec = trainer.model.diffusion_decoder
++    _dec.set_data_act_statistics(all_actions_max, all_actions_min)
++    # Training-only knob (see cogvideox_flow.normalize_act_data): 'hard' == upstream.
++    _dec.act_clamp = str(cfg.get('act_clamp', 'hard')).lower()
++    if rank == 0:
++        logger.info(f"[act_scale] data_act_scale={_dec.data_act_scale.tolist()} "
++                    f"bias={_dec.data_act_bias.tolist()} act_clamp={_dec.act_clamp}")
+ 
+     # Start training
+     try:
+diff --git a/trainer/trainer.py b/trainer/trainer.py
+index 622a32b..6bed02b 100644
+--- a/trainer/trainer.py
++++ b/trainer/trainer.py
+@@ -326,6 +326,10 @@ class TrajectoryDiffusionTrainer:
+ 
+             # Extract trajectory data
+             target_trajectory = batch['trajectory'].to(self.device)  # [B, N, H+1, 2]
++            # MECHANISM C: (B,3) attractor (u_frac, v_frac, depth_m); None pre-C
++            attractor = batch.get('attractor', None)
++            if attractor is not None:
++                attractor = attractor.to(self.device)
+             trajectory_mask = batch['trajectory_mask'].to(self.device)  # [B, N, H+1]
+ 
+             # Prepare targets
+@@ -333,7 +337,8 @@ class TrajectoryDiffusionTrainer:
+                 'gt_coords': gt_coords,
+                 'gt_mask': gt_mask,
+                 'trajectory': target_trajectory,
+-                'trajectory_mask': trajectory_mask
++                'trajectory_mask': trajectory_mask,
++                'movement_bool': movement_bool,   # #4: per-point mover flag for motion-weighted loss
+             }
+ 
+             model_forward = self.model.module if hasattr(self.model, "module") else self.model
+@@ -343,7 +348,8 @@ class TrajectoryDiffusionTrainer:
+                 depth=depth,
+                 is_depth_valid=is_depth_valid,
+                 target_trajectory=target_trajectory,
+-                first_keypoint=gt_coords,
++                first_keypoint=target_trajectory[:, :, 0, :],   # QPOS: trajectory step 0, NOT gt_xy -- gt_xy is a uniform grid while traj step 0 is the actual (possibly allocated) query set
++                attractor=attractor,   # MECHANISM C: goal conditioning (None -> pre-C behaviour)
+                 diffusion_loss=self.criterion
+             )
+ 
+@@ -412,7 +418,8 @@ class TrajectoryDiffusionTrainer:
+                         texts=texts,
+                         depth=depth,
+                         is_depth_valid=is_depth_valid,
+-                        first_keypoint=gt_coords,
++                        first_keypoint=target_trajectory[:, :, 0, :],   # QPOS: trajectory step 0, NOT gt_xy -- gt_xy is a uniform grid while traj step 0 is the actual (possibly allocated) query set
++                        attractor=attractor,   # MECHANISM C: goal conditioning (None -> pre-C behaviour)
+                         noise_scheduler=self.criterion.noise_scheduler,
+                         guidance_scale=guidance_scale
+                     )
+@@ -422,7 +429,8 @@ class TrajectoryDiffusionTrainer:
+                         texts=texts,
+                         depth=depth,
+                         is_depth_valid=is_depth_valid,
+-                        first_keypoint=gt_coords,
++                        first_keypoint=target_trajectory[:, :, 0, :],   # QPOS: trajectory step 0, NOT gt_xy -- gt_xy is a uniform grid while traj step 0 is the actual (possibly allocated) query set
++                        attractor=attractor,   # MECHANISM C: goal conditioning (None -> pre-C behaviour)
+                         noise_scheduler=self.criterion.noise_scheduler,
+                         guidance_scale=guidance_scale
+                     )
+@@ -502,6 +510,10 @@ class TrajectoryDiffusionTrainer:
+                 gt_coords = batch['gt_xy'].to(self.device)
+                 gt_mask = batch['gt_mask'].to(self.device)
+                 target_trajectory = batch['trajectory'].to(self.device)
++                # MECHANISM C: (B,3) attractor (u_frac, v_frac, depth_m); None pre-C
++                attractor = batch.get('attractor', None)
++                if attractor is not None:
++                    attractor = attractor.to(self.device)
+                 depth = batch['depth'].to(self.device)
+                 is_depth_valid = batch['is_depth_valid']
+                 trajectory_mask = batch['trajectory_mask'].to(self.device)
+@@ -523,7 +535,8 @@ class TrajectoryDiffusionTrainer:
+                     depth=depth,
+                     is_depth_valid=is_depth_valid,
+                     target_trajectory=target_trajectory,
+-                    first_keypoint=gt_coords,
++                    first_keypoint=target_trajectory[:, :, 0, :],   # QPOS: trajectory step 0, NOT gt_xy -- gt_xy is a uniform grid while traj step 0 is the actual (possibly allocated) query set
++                    attractor=attractor,   # MECHANISM C: goal conditioning (None -> pre-C behaviour)
+                     diffusion_loss=self.criterion,
+                 )
+                 losses = self.criterion(outputs, targets, trajectory_mask)
+@@ -543,7 +556,8 @@ class TrajectoryDiffusionTrainer:
+                         texts=texts,
+                         depth=depth,
+                         is_depth_valid=is_depth_valid,
+-                        first_keypoint=gt_coords,
++                        first_keypoint=target_trajectory[:, :, 0, :],   # QPOS: trajectory step 0, NOT gt_xy -- gt_xy is a uniform grid while traj step 0 is the actual (possibly allocated) query set
++                        attractor=attractor,   # MECHANISM C: goal conditioning (None -> pre-C behaviour)
+                         noise_scheduler=self.criterion.noise_scheduler,
+                         guidance_scale=1.0
+                     )
+@@ -838,9 +852,45 @@ class TrajectoryDiffusionTrainer:
+         return metrics
+ 
+     def get_action_statistics(self):
+-        """Get statistics for action."""
+-        all_actions_min = torch.tensor([-0.05, -0.05, -0.04])
+-        all_actions_max = torch.tensor([0.05, 0.05, 0.04])
++        """Get statistics for action.
++
++        NOTE (2026-07-30): these are HARD-CODED CONSTANTS inherited from upstream --
++        this function never looked at the data. They become
++        `data_act_scale = (max-min)/2` (models/decoder/cogvideox_flow.py:240), the divisor
++        applied to the flow-matching target at `:415`. Measured on
++        assets_data/franka_cube_stackalloc/warmup (704 samples, 1.18M valid deltas), the
++        real per-step displacement std is 0.0061/0.0063/0.0065, so the normalised target
++        std is only 0.122/0.127/0.162 against unit-variance noise -- the model has to
++        extract ~1.5% explainable variance from `dx_dt_true = -z + noise`.
++
++        `act_scale_mode` selects the divisor. Default 'const' reproduces the constants
++        above EXACTLY, so the baseline stays byte-identical.
++
++          const    -> the upstream constants (default)
++          explicit -> symmetric scale from `act_scale_xyz` (a measured statistic, passed
++                      in so it is recorded in the launcher's cmd.txt and auditable)
++
++        Set via `--override act_scale_mode=explicit --override act_scale_xyz=[a,b,c]`
++        (top-level keys; the DictToNamespace cfg takes new top-level keys from --override,
++        same idiom as `motion_weight_alpha` in losses/trajectory_loss.py:82).
++        """
++        mode = str(getattr(self.cfg, 'act_scale_mode', 'const')).lower()
++        if mode == 'const':
++            all_actions_min = torch.tensor([-0.05, -0.05, -0.04])
++            all_actions_max = torch.tensor([0.05, 0.05, 0.04])
++        elif mode == 'explicit':
++            s = getattr(self.cfg, 'act_scale_xyz', None)
++            if s is None:
++                raise ValueError("act_scale_mode=explicit requires act_scale_xyz=[sx,sy,sz]")
++            s = torch.tensor([float(x) for x in s], dtype=torch.float32)
++            if s.numel() != 3 or bool((s <= 0).any()):
++                raise ValueError(f"act_scale_xyz must be 3 positive numbers, got {s.tolist()}")
++            # bias stays 0 (the upstream constants are symmetric), so scale == s exactly.
++            all_actions_min, all_actions_max = -s, s
++        else:
++            raise ValueError(f"unknown act_scale_mode={mode!r} (const|explicit)")
++        logger.info(f"[act_scale] mode={mode} min={all_actions_min.tolist()} "
++                    f"max={all_actions_max.tolist()} -> scale={((all_actions_max - all_actions_min) / 2).tolist()}")
+         return all_actions_min, all_actions_max
+ 
+     def _create_uniform_grid(self, grid_size=20):
+@@ -926,6 +976,10 @@ class TrajectoryDiffusionTrainer:
+                 gt_coords = batch['gt_xy'].to(self.device)
+                 gt_mask = batch['gt_mask'].to(self.device)
+                 target_trajectory = batch['trajectory'].to(self.device)
++                # MECHANISM C: (B,3) attractor (u_frac, v_frac, depth_m); None pre-C
++                attractor = batch.get('attractor', None)
++                if attractor is not None:
++                    attractor = attractor.to(self.device)
+                 depth = batch['depth'].to(self.device)
+                 is_depth_valid = batch['is_depth_valid']
+                 trajectory_mask = batch['trajectory_mask'].to(self.device)
+@@ -947,7 +1001,8 @@ class TrajectoryDiffusionTrainer:
+                     depth=depth,
+                     is_depth_valid=is_depth_valid,
+                     target_trajectory=target_trajectory,
+-                    first_keypoint=gt_coords,
++                    first_keypoint=target_trajectory[:, :, 0, :],   # QPOS: trajectory step 0, NOT gt_xy -- gt_xy is a uniform grid while traj step 0 is the actual (possibly allocated) query set
++                    attractor=attractor,   # MECHANISM C: goal conditioning (None -> pre-C behaviour)
+                     diffusion_loss=self.criterion,
+                 )
+                 losses = self.criterion(outputs, targets, trajectory_mask)
+@@ -967,7 +1022,8 @@ class TrajectoryDiffusionTrainer:
+                         texts=texts,
+                         depth=depth,
+                         is_depth_valid=is_depth_valid,
+-                        first_keypoint=gt_coords,
++                        first_keypoint=target_trajectory[:, :, 0, :],   # QPOS: trajectory step 0, NOT gt_xy -- gt_xy is a uniform grid while traj step 0 is the actual (possibly allocated) query set
++                        attractor=attractor,   # MECHANISM C: goal conditioning (None -> pre-C behaviour)
+                         noise_scheduler=self.criterion.noise_scheduler,
+                         guidance_scale=1.0
+                     )
