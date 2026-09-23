@@ -14,7 +14,7 @@ Two kinds of file live here.
 and evaluation seed. They are data, not code, so they live beside the weights:
 
 ```bash
-hf download <HF_REPO> --include "banks/*" --local-dir .
+hf download <HF_REPO> --local-dir . --include "banks/*"
 ```
 
 This writes them into this directory, where `verify_main_table.sh`, `40_eval_row4.sh` and `41_eval_row3.sh` find

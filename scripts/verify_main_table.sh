@@ -13,7 +13,7 @@ SD=${1:-$SEED}; ROW=${ROW:-final}; mkdir -p results verify
 for f in banks/*_${SD}_*.npz banks/*_${SD}.npz; do [ -e "$f" ] && [ ! -e results/$(basename $f) ] && ln -s ../$f results/$(basename $f); done; true
 if ! ls banks/*_goals_*_${SD}_*.npz >/dev/null 2>&1; then
   echo "[verify] !! no goal banks for seed $SD in banks/. They are downloaded, not committed:"
-  echo "              hf download <HF_REPO> --include \"banks/*\" --local-dir ."
+  echo "              hf download <HF_REPO> --local-dir . --include \"banks/*\""
   echo "           See banks/README.md, or regenerate: 10_render_banks.sh -> 20_predict.sh -> 30_goals.sh"
   exit 1
 fi

@@ -38,8 +38,8 @@ conda create -n maniskill python=3.11 -y
 conda run -n maniskill pip install -r requirements/maniskill_freeze.txt
 export PM=$(conda run -n maniskill which python)
 
-hf download <HF_REPO> --include "student/*" "teacher/*" "SHA256SUMS" --local-dir checkpoints   # 12 MB of weights
-hf download <HF_REPO> --include "banks/*" --local-dir .                                        # 58 MB of frozen goals
+hf download <HF_REPO> --local-dir checkpoints --include "student/*" --include "teacher/*" --include "SHA256SUMS"      # 12 MB of weights
+hf download <HF_REPO> --local-dir . --include "banks/*"                    # 58 MB of frozen goals
 bash scripts/00_link_checkpoints.sh
 ROW=final bash scripts/verify_main_table.sh 999        # ~10 min on one GPU
 ```
