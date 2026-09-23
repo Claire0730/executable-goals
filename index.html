@@ -1,0 +1,2681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Predicted Futures Are Not Enough</title>
+<meta name="description" content="A planner that predicts 3D traces and reads out one executable SE(3) goal, executed by a single pose-native policy shared across five manipulation tasks.">
+
+<link rel="canonical" href="https://claire0730.github.io/executable-goals/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Predicted Futures Are Not Enough: Learning Executable Goals for Robot Manipulation">
+<meta property="og:description" content="Predicting the future is not the same as being able to act on it. We read one executable SE(3) goal out of predicted 3D traces.">
+<meta property="og:url" content="https://claire0730.github.io/executable-goals/">
+<meta property="og:image" content="https://claire0730.github.io/executable-goals/static/images/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="citation_title" content="Predicted Futures Are Not Enough: Learning Executable Goals for Robot Manipulation">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+/* ============================================================ tokens
+   Paper, not screen. The page is white because that is how the figures read in the
+   PDF; the media stays dark, because every render and rollout is shot on black, so
+   each clip sits on the page as a framed panel. The 3D canvases keep a dark ground
+   for the same reason -- luminous traces need one.
+
+   Series colors are the paper's own light-mode values, nudged just far enough to
+   clear 3:1 against white (validated: lightness band, chroma, CVD separation,
+   normal-vision floor, contrast). */
+:root{
+  color-scheme: light;
+
+  --ground:#ffffff;
+  --ground-2:#f7f8fa;
+  --surface:#ffffff;
+  --surface-2:#f4f6f9;
+  --surface-3:#e9ecf2;
+  --line:#e4e7ee;
+  --line-2:#d8dde6;
+  --line-3:#ccd3de;
+
+  --ink:#0d1420;
+  --muted:#4f5a70;
+  --faint:#7c8698;
+
+  --sand:#8a7350;
+  --sand-dim:#9a8a6c;
+
+  /* Chart families. K=1 and K=4 are the same method at two settings, so they are
+     two steps of one cool hue rather than two unrelated colours; ours is the single
+     warm accent; everything prior is one neutral, with the row label carrying its
+     identity. Validated on white: lightness band, chroma, CVD separation,
+     normal-vision floor and 3:1 contrast all pass. */
+  --k1:#2e9bb5;
+  --k4:#2a5f9e;
+  --ours:#d9602b;
+  /* Prior work was one neutral so the row label could carry identity, which made
+     the charts read as grey. It is now a green family, and in the scatter it splits
+     by what the planner predicts. Validated on white as a four-slot categorical set
+     with cyan and blue (the two Rigid Readout settings) and the orange: lightness
+     band, chroma, CVD separation, normal-vision floor and 3:1 contrast all pass. */
+  --prior:#579a3f;
+  --prior-alt:#2e9bb5;
+  --oracle:#9c8d6c;
+  --ours-dim:rgba(217,96,43,.09);
+  --ours-glow:rgba(217,96,43,.26);
+
+  /* Trace colors live on the dark canvas, so they keep their luminous values. */
+  --pred:#f2b043;
+  --exec:#43b0ef;
+
+  --ok:#10a06d;
+  --bad:#6b7688;
+  --bad-dim:rgba(107,118,136,.32);
+
+  --sans:"Archivo", ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --gutter:clamp(20px, 3.2vw, 56px);
+  --maxw:1680px;
+  --r:12px;
+  --r-sm:8px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--ground);
+  background-image:radial-gradient(120% 44% at 50% 0%, #f2f5fa 0%, var(--ground) 62%);
+  background-attachment:fixed;
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img,video,canvas{max-width:100%;display:block}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:target{scroll-margin-top:66px}
+::selection{background:var(--ours-glow);color:#fff}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding-inline:var(--gutter)}
+
+/* ============================================================ nav */
+nav{
+  position:sticky;top:env(safe-area-inset-top, 0px);z-index:40;
+  background:rgba(255,255,255,.88);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+nav .wrap{display:flex;align-items:center;gap:6px;height:50px;overflow-x:auto;scrollbar-width:none}
+nav .wrap::-webkit-scrollbar{display:none}
+nav .brand{
+  font-family:var(--mono);font-size:12px;letter-spacing:.07em;font-weight:500;
+  color:var(--ink);text-decoration:none;white-space:nowrap;margin-right:10px;
+}
+nav .brand span{color:var(--ours)}
+nav a.jump:hover{background:var(--surface-2)}
+nav a.jump{
+  font-size:13px;color:var(--faint);text-decoration:none;white-space:nowrap;
+  padding:5px 10px;border-radius:99px;transition:color .15s, background .15s;
+}
+nav a.jump:hover{color:var(--ink);background:var(--surface-2)}
+nav a.jump:focus-visible{outline:2px solid var(--ours);outline-offset:1px}
+
+/* ============================================================ hero
+   Title block on paper: name, authors, links. The overview video carries the
+   opening image, immediately below. */
+.hero{position:relative}
+.hero-text{position:relative;padding-block:clamp(40px,6vw,76px) clamp(24px,3vw,36px);text-align:center}
+@media (max-width:860px){
+  .hero-text{padding-block:30px 22px}
+}
+
+.venue{
+  display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 18px;
+  border:1px solid var(--line-2);border-radius:99px;padding:5px 14px;background:var(--surface-2);
+}
+h1{
+  font-size:clamp(31px,5.6vw,60px);
+  line-height:1.01;font-weight:700;letter-spacing:-.032em;
+  margin:0 auto;text-wrap:balance;max-width:17ch;
+}
+h1 .thin{
+  display:block;font-weight:400;color:var(--muted);
+  font-size:.4em;letter-spacing:-.005em;margin-top:.62em;max-width:34ch;line-height:1.3;
+  margin-inline:auto;
+}
+.authors{margin:26px auto 0;font-size:15px;color:var(--muted);max-width:60ch}
+.authors .affil{display:block;font-size:13.5px;color:var(--faint);margin-top:8px}
+.authors sup{font-size:.72em;vertical-align:super;line-height:0}
+
+.btns{display:flex;flex-wrap:wrap;gap:9px;margin-top:28px;justify-content:center}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:99px;
+  background:var(--surface);border:1px solid var(--line-2);
+  color:var(--ink);text-decoration:none;font-size:14px;font-weight:500;
+  transition:background .15s, border-color .15s, transform .15s;
+}
+.btn:hover{background:var(--surface-2);border-color:var(--line-3);transform:translateY(-1px)}
+.btn:focus-visible{outline:2px solid var(--ours);outline-offset:2px}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.btn.primary:hover{background:#26324a;border-color:#26324a}
+.btn.soon{opacity:.45;pointer-events:none}
+.btn .later{
+  font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+  border:1px solid currentColor;border-radius:3px;padding:0 4px;opacity:.75;
+}
+
+/* ============================================================ overview + abstract */
+#idea{padding-block:clamp(24px,3vw,40px) clamp(40px,5vw,64px)}
+#idea .eyebrow{justify-content:center;margin-bottom:16px}
+#idea .eyebrow::after{display:none}
+.video-hero{max-width:1080px;margin-inline:auto}
+.video-hero video{width:100%;display:block;background:#0a0d14}
+
+h2.centered{text-align:center;max-width:none;margin-bottom:22px}
+.abstract{
+  max-width:74ch;margin:0 auto;color:var(--muted);font-size:16px;line-height:1.75;
+  text-align:justify;hyphens:auto;
+}
+
+/* ============================================================ sections */
+section{padding-block:clamp(56px,7.5vw,100px);border-bottom:1px solid var(--line);position:relative}
+section.tint{background:var(--ground-2)}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--sand);margin:0 0 12px;display:flex;align-items:center;gap:10px;
+}
+.eyebrow::after{content:"";flex:0 0 26px;height:1px;background:var(--sand);opacity:.5}
+h2{
+  font-size:clamp(23px,3.2vw,34px);line-height:1.14;font-weight:600;letter-spacing:-.024em;
+  margin:0;text-wrap:balance;max-width:19ch;
+}
+h3{letter-spacing:-.01em}
+.lede{margin:14px 0 0;color:var(--muted);font-size:16.5px;max-width:58ch}
+.lede b{color:var(--ink);font-weight:600}
+.head{margin-bottom:30px}
+
+/* ============================================================ numbers */
+.numbers{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  background:var(--line);border-block:1px solid var(--line);
+}
+.numbers > div{background:var(--surface);padding:26px 22px}
+.numbers .n{
+  font-size:clamp(28px,4.2vw,44px);font-weight:700;letter-spacing:-.04em;line-height:1;
+  font-variant-numeric:tabular-nums;color:var(--ink);
+}
+.numbers .n small{font-size:.4em;font-weight:500;color:var(--faint);letter-spacing:0;margin-left:3px}
+.numbers .lab{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:11px;line-height:1.5}
+.numbers .hero-stat{background:linear-gradient(180deg, var(--ours-dim), rgba(255,255,255,0) 80%), var(--surface)}
+.numbers .hero-stat .n{color:var(--ours)}
+.numbers .hero-stat .n small{color:var(--ours);opacity:.55}
+@media (max-width:760px){ .numbers{grid-template-columns:repeat(2,1fr)} }
+
+/* ============================================================ media */
+figure{margin:0}
+.frame{
+  position:relative;border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;background:#000;
+}
+.frame video,.frame img{width:100%;display:block}
+.cap{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:11px;line-height:1.55}
+.cap b{color:var(--ink);font-weight:600}
+
+.duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+/* Grid items default to min-width:auto, so a wide <pre> or table would push the
+   track past the viewport instead of scrolling inside it. */
+.duo > *,.trio > *{min-width:0}
+@media (max-width:860px){ .duo,.trio{grid-template-columns:1fr} }
+
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 9px;border-radius:99px;border:1px solid var(--line-3);color:var(--muted);
+}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.chip.pred{color:var(--pred);border-color:rgba(242,176,67,.42)}
+.chip.exec{color:var(--exec);border-color:rgba(67,176,239,.42)}
+.chip.ok{color:var(--ok);border-color:rgba(46,200,148,.42)}
+.chip.bad{color:var(--bad);border-color:var(--bad-dim)}
+
+/* ============================================================ pipeline
+   The architecture figure sits above and the spotlight masks everything except the
+   block the current step happens in, so the still below and the diagram stay tied
+   together. The step list is grouped by stage, which is what the four boxes in the
+   figure actually are. */
+.arch{
+  position:relative;border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;background:#fff;
+}
+.arch img{width:100%;display:block}
+.arch svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.arch .hole,.arch .ring{transition:x .26s cubic-bezier(.4,0,.2,1),y .26s cubic-bezier(.4,0,.2,1),
+                                   width .26s cubic-bezier(.4,0,.2,1),height .26s cubic-bezier(.4,0,.2,1)}
+.arch-cap{
+  position:absolute;left:0;right:0;bottom:0;padding:9px 14px;
+  background:linear-gradient(0deg, rgba(255,255,255,.96), rgba(255,255,255,0));
+  font-family:var(--mono);font-size:11px;color:var(--sand);font-weight:500;
+}
+
+.pipe{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:980px){ .pipe{grid-template-columns:1fr} }
+.pipe-side{display:flex;flex-direction:column;gap:14px}
+.pipe-stage{
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  background:#000;position:relative;aspect-ratio:16/11;
+}
+.pipe-stage img,.pipe-stage video{
+  width:100%;height:100%;object-fit:contain;position:absolute;inset:0;
+  opacity:0;transition:opacity .26s ease;
+}
+.pipe-stage img.on,.pipe-stage video.on{opacity:1}
+.pipe-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+.pipe-steps .grp{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--sand-dim);margin:11px 0 4px 10px;display:flex;align-items:center;gap:8px;
+}
+.pipe-steps .grp:first-child{margin-top:0}
+.pipe-steps .grp::after{content:"";flex:1;height:1px;background:var(--line)}
+.pipe-steps button{
+  display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:baseline;
+  width:100%;text-align:left;background:none;border:0;cursor:pointer;
+  padding:6px 10px;border-radius:var(--r-sm);position:relative;transition:background .15s;
+}
+.pipe-steps button:hover{background:var(--surface-2)}
+.pipe-steps button:focus-visible{outline:2px solid var(--ours);outline-offset:-2px}
+.pipe-steps button[aria-current="true"]{background:var(--surface-2)}
+.pipe-steps button[aria-current="true"]::before{
+  content:"";position:absolute;left:0;top:7px;bottom:7px;width:2px;
+  background:var(--ours);border-radius:2px;
+}
+.pipe-steps .num{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.pipe-steps button[aria-current="true"] .num{color:var(--ours)}
+.pipe-steps .t{font-size:13px;line-height:1.35;color:var(--muted)}
+.pipe-steps button[aria-current="true"] .t{color:var(--ink)}
+
+/* ============================================================ 3D viewer */
+.viewer{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:18px;align-items:stretch}
+@media (max-width:960px){ .viewer{grid-template-columns:1fr} }
+.canvas-wrap{
+  position:relative;border:1px solid var(--line);border-radius:var(--r);
+  background:radial-gradient(115% 85% at 50% 10%, #16203a 0%, #070a12 76%);
+  min-height:clamp(340px, 50vh, 560px);
+  overflow:hidden;touch-action:none;cursor:grab;
+}
+.canvas-wrap:active{cursor:grabbing}
+.canvas-wrap canvas{width:100%;height:100%;display:block}
+.v-hint{
+  position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:10.5px;
+  color:#7e8aa4;pointer-events:none;letter-spacing:.04em;
+}
+.v-err{position:absolute;left:14px;top:14px;font-family:var(--mono);font-size:11.5px;color:var(--ours)}
+.v-readout{
+  position:absolute;right:14px;top:14px;text-align:right;pointer-events:none;
+  display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+  text-shadow:0 1px 10px rgba(0,0,0,.75);
+}
+.v-readout .lab{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:#93a0b8;
+}
+.v-readout .lab.sep{margin-top:14px}
+.v-readout .num{
+  font-size:38px;font-weight:700;letter-spacing:-.035em;line-height:1.05;
+  color:#f0703a;font-variant-numeric:tabular-nums;
+}
+.v-readout .num i{font-style:normal;font-size:.4em;font-weight:500;margin-left:3px;opacity:.75}
+.v-readout .num.small{font-size:24px;color:#f2b043}
+.v-readout .mrow{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#c3ccdc}
+.v-readout .mrow i.ring{width:9px;height:9px;border-radius:50%;border:1.5px solid;flex:none}
+.v-readout .mrow b{font-weight:400}
+.v-readout .mrow u{
+  text-decoration:none;font-family:var(--mono);font-variant-numeric:tabular-nums;
+  color:#fff;min-width:58px;text-align:right;
+}
+@media (max-width:620px){ .v-readout .num{font-size:28px} .v-readout .mrow{font-size:10.5px} }
+
+.swatch.ring{background:none !important;border:1.5px solid;border-radius:50%}
+.layers.methods label{font-size:13px}
+
+.v-panel{display:flex;flex-direction:column;gap:13px}
+.v-panel > div > label,.v-label{
+  display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:7px;
+}
+select{
+  width:100%;background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--line-3);border-radius:var(--r-sm);padding:9px 11px;
+  font:inherit;font-size:13.5px;
+}
+select:focus-visible{outline:2px solid var(--ours);outline-offset:1px}
+.v-row{display:flex;gap:8px;align-items:center;margin-top:9px}
+.btnrow{display:flex;flex-wrap:wrap;gap:6px}
+.btnrow button{
+  background:var(--surface-2);border:1px solid var(--line-3);border-radius:99px;
+  padding:6px 12px;font-size:12.5px;color:var(--muted);cursor:pointer;
+  transition:background .15s, border-color .15s, color .15s;
+}
+.btnrow button:hover{background:var(--surface-3);color:var(--ink)}
+.btnrow button:focus-visible{outline:2px solid var(--ours);outline-offset:1px}
+.btnrow button[aria-pressed="true"]{
+  background:var(--ours);border-color:var(--ours);color:#120905;font-weight:600;
+}
+.epnote{
+  margin:9px 0 0;font-size:12px;line-height:1.55;color:var(--faint);
+  border-left:2px solid var(--line-2);padding-left:9px;
+}
+.epnote:empty{display:none}
+.btnrow.eps button[aria-pressed="true"]{
+  background:var(--surface-3);border-color:var(--ours);color:var(--ours);font-weight:500;
+}
+.v-btn{
+  background:var(--surface-2);border:1px solid var(--line-3);border-radius:var(--r-sm);
+  padding:8px 13px;font-size:13px;cursor:pointer;transition:background .15s;
+}
+.v-btn:hover{background:var(--surface-3)}
+.v-btn:focus-visible{outline:2px solid var(--ours);outline-offset:1px}
+input[type=range]{width:100%;accent-color:var(--ours);background:transparent}
+.layers{display:flex;flex-direction:column;gap:9px}
+.layers label{
+  display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--muted);
+  margin:0;cursor:pointer;text-transform:none;letter-spacing:0;font-family:var(--sans);
+}
+.layers input{accent-color:var(--ours);width:15px;height:15px;flex:none}
+.swatch{width:9px;height:9px;border-radius:2px;flex:none}
+
+/* ============================================================ chart
+   Grouped bars, one group per task. Series colors are the paper's own dark-mode
+   variants; green and blue collapse under tritanopia, so identity never rests on
+   hue alone -- every bar carries its value, there is a legend, and the same numbers
+   are one click away as a table. */
+.chartcard{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.chartbar{
+  display:flex;align-items:center;gap:14px 20px;flex-wrap:wrap;
+  padding:14px 18px;border-bottom:1px solid var(--line);
+}
+.legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted)}
+.legend i{width:11px;height:11px;border-radius:3px;flex:none}
+.legend i.cap{width:15px;height:0;border-top:2px dashed var(--oracle);border-radius:0}
+.viewtoggle{display:flex;gap:2px;margin-left:auto;background:var(--surface-2);border-radius:99px;padding:3px}
+.viewtoggle button{
+  border:0;background:none;padding:5px 13px;border-radius:99px;cursor:pointer;
+  font-size:12.5px;color:var(--faint);
+}
+.viewtoggle button[aria-pressed="true"]{background:var(--surface-3);color:var(--ink)}
+.viewtoggle button:focus-visible{outline:2px solid var(--ours);outline-offset:1px}
+.plot{padding:18px 18px 8px;position:relative}
+.plot svg{width:100%;height:auto;display:block;overflow:visible}
+.plot .gridline{stroke:var(--line);stroke-width:1}
+.plot .axis{fill:var(--faint);font-family:var(--mono);font-size:11px}
+.plot .grouplab{fill:var(--muted);font-family:var(--sans);font-size:13px}
+.plot .vallab{fill:var(--muted);font-family:var(--mono);font-size:10.5px}
+.plot .vallab.lead{fill:var(--ink);font-weight:500}
+.plot .bar{transition:opacity .15s}
+.plot .bar:hover{opacity:.82}
+.plot .cap{stroke:var(--oracle);stroke-width:2;stroke-dasharray:5 4}
+.tip{
+  position:absolute;pointer-events:none;z-index:5;opacity:0;transition:opacity .12s;
+  background:var(--ink);color:#fff;border:0;border-radius:var(--r-sm);
+  padding:8px 11px;font-size:12.5px;white-space:nowrap;
+  box-shadow:0 10px 28px -10px rgba(13,20,32,.5);
+}
+.tip.on{opacity:1}
+.tip b{display:block;font-weight:600;margin-bottom:3px}
+.tip .v{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ============================================================ definitions */
+.defs{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 26px;
+  margin-top:20px;padding-top:18px;border-top:1px solid var(--line);
+}
+.defs p{margin:0;font-size:14.5px;line-height:1.6;color:var(--muted)}
+.defs p .chip{margin-right:8px;vertical-align:2px}
+.defs b{color:var(--ink);font-weight:600}
+.defs-note{grid-column:1/-1;padding-top:4px}
+@media (max-width:860px){ .defs{grid-template-columns:1fr} }
+
+.plot .rowlab{fill:var(--ink);font-family:var(--sans);font-size:12.5px}
+.plot .rowlab.dim{fill:var(--muted)}
+.plot .panelhead{
+  fill:var(--faint);font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.plot .rowrule{stroke:var(--line);stroke-width:1}
+.plot .marklab{fill:var(--ink);font-family:var(--sans);font-size:13px}
+.plot .marksub{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.plot .axistitle{
+  fill:var(--faint);font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.09em;text-transform:uppercase;
+}
+.legend .sizekey{display:inline-flex;align-items:center;gap:8px;color:var(--line-3)}
+.legend .sizekey svg{width:86px;height:26px;flex:none}
+.legend .sizekey{font-size:12.5px}
+.legend .sizekey{color:var(--muted)}
+.plot .sd line{stroke:var(--ink);stroke-width:1.4;opacity:.5}
+.legend i.sd{
+  width:15px;height:9px;border-radius:0;background:none;
+  border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink);
+  position:relative;opacity:.55;
+}
+.legend i.sd::after{
+  content:"";position:absolute;left:0;right:0;top:50%;height:1.4px;background:var(--ink);
+}
+
+/* ============================================================ demo */
+.demo-viewer .canvas-wrap{min-height:clamp(320px, 46vh, 500px)}
+.goalstrip{
+  display:flex;align-items:center;gap:14px 26px;flex-wrap:wrap;
+  margin-top:16px;padding:15px 20px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--surface);
+}
+.goalstrip .v-label{margin:0;white-space:nowrap}
+.goalstrip dl{
+  margin:0;display:grid;grid-auto-flow:column;grid-template-rows:auto auto;gap:3px 22px;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;
+}
+.goalstrip dt{font-size:10.5px;color:var(--faint);letter-spacing:.06em}
+.goalstrip dd{margin:0;font-size:14px;color:var(--ink)}
+.goalout-note{margin:0;font-size:12px;line-height:1.55;color:var(--faint);max-width:38ch}
+@media (max-width:760px){ .goalstrip dl{grid-auto-flow:row;grid-template-columns:repeat(4,1fr);grid-template-rows:none} }
+.demo-foot{
+  display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:center;
+  margin-top:30px;padding-top:26px;border-top:1px solid var(--line);
+}
+@media (max-width:860px){ .demo-foot{grid-template-columns:1fr} }
+.demo-list{margin:16px 0 18px;padding-left:19px;color:var(--muted);font-size:14.5px;line-height:1.8}
+.upload{display:flex;flex-direction:column;gap:18px}
+.drop{
+  display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;
+  border:2px dashed var(--line-3);border-radius:var(--r);padding:30px 22px;
+  background:var(--surface-2);
+}
+.drop-icon{font-size:26px;color:var(--faint);line-height:1}
+.drop-title{font-size:16px;font-weight:600;color:var(--ink)}
+.drop-sub{font-size:13px;color:var(--faint);margin-bottom:8px}
+.accepts{
+  margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;
+  font-size:13.5px;
+}
+.accepts dt{font-family:var(--mono);font-size:11.5px;color:var(--faint);padding-top:2px}
+.accepts dd{margin:0;color:var(--muted)}
+.accepts code{font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.note{font-size:13px;color:var(--faint);line-height:1.6;margin:0 0 16px;max-width:60ch}
+.demo-list code{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+
+/* ============================================================ tables */
+.tablecard{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:460px}
+th,td{padding:10px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
+thead th{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--faint);font-weight:500;background:var(--surface-2);
+}
+thead th:first-child{background:var(--surface-2)}
+tbody td{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+tbody td:first-child{font-family:var(--sans);color:var(--muted)}
+tr.ours td{color:var(--ink);background:var(--ours-dim)}
+tr.ours td:first-child{color:var(--ours);font-weight:600;background:var(--ours-dim)}
+tr.k1 td:first-child{color:var(--k1)}
+tr.k4 td:first-child{color:var(--k4)}
+tr.oracle td:first-child{color:var(--sand)}
+td .sd{color:var(--faint);font-size:.85em;margin-left:2px}
+tbody tr:last-child td{border-bottom:0}
+.tnote{
+  padding:11px 14px;font-family:var(--mono);font-size:10.5px;color:var(--faint);
+  border-top:1px solid var(--line);line-height:1.6;
+}
+
+/* ============================================================ gallery */
+.filters{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;margin-bottom:22px}
+.filters .f{min-width:150px;flex:1 1 150px;max-width:220px}
+.gcount{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:auto;padding-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:16px}
+.card{
+  border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:var(--surface);
+  cursor:pointer;text-align:left;padding:0;width:100%;transition:border-color .18s, transform .18s;
+}
+.card:hover{border-color:var(--line-3);transform:translateY(-2px);box-shadow:0 8px 22px -14px rgba(13,20,32,.3)}
+.card:focus-visible{outline:2px solid var(--ours);outline-offset:2px}
+.card .frame{border:0;border-radius:0;aspect-ratio:1/1}
+.card .frame video,.card .frame img{width:100%;height:100%;object-fit:cover}
+.card .info{padding:10px 12px 12px}
+.card .ttl{font-size:13px;font-weight:500;line-height:1.3}
+.card .sub{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:6px;display:flex;flex-wrap:wrap;gap:5px 9px;align-items:center}
+.badge{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;border:1px solid currentColor}
+.badge.ok{color:var(--ok)} .badge.bad{color:var(--bad)}
+.empty{font-family:var(--mono);font-size:12.5px;color:var(--faint);padding:28px 0}
+
+/* ============================================================ real robot */
+.realhead{
+  display:flex;align-items:center;gap:12px;margin:38px 0 18px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+}
+.realhead::after{content:"";flex:1;height:1px;background:var(--line)}
+.realhead.ok{color:var(--ok)}
+.realhead.bad{color:var(--bad)}
+.realgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:20px}
+@media (max-width:920px){ .realgrid{grid-template-columns:1fr} }
+.failnote{
+  margin-top:34px;padding:22px 24px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--surface);
+}
+.failnote p{margin:0 0 10px;color:var(--muted);font-size:15px;line-height:1.7;max-width:78ch}
+.failnote p:last-child{margin-bottom:0}
+.failnote b{color:var(--ink);font-weight:600}
+.failnote .note{font-size:13px;color:var(--faint)}
+.rcard{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.rcard.ok{border-color:rgba(16,160,109,.34)}
+.rcard.bad{border-color:var(--line-2)}
+.rpair{display:grid;grid-template-columns:1.5fr 1fr;gap:1px;background:var(--line)}
+.rpair > div{position:relative;background:#000;overflow:hidden}
+.rpair video{width:100%;height:100%;object-fit:cover;display:block;aspect-ratio:3/2}
+.rpair .rgb video{aspect-ratio:1/1}
+.rtag{
+  position:absolute;left:8px;top:8px;z-index:2;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+  background:rgba(10,13,20,.72);border:1px solid rgba(255,255,255,.22);border-radius:3px;
+  padding:2px 6px;color:#e6eaf2;backdrop-filter:blur(4px);
+}
+.rbar{
+  display:flex;align-items:center;gap:10px;padding:9px 14px;
+  border-top:1px solid var(--line);background:var(--surface-2);
+}
+.rbar input[type=range]{flex:1;accent-color:var(--ours)}
+.v-btn.sm{padding:4px 11px;font-size:12px;min-width:62px}
+.rbody{padding:12px 14px 14px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.rbody .t{font-size:14px;font-weight:500}
+.rbody .s{font-family:var(--mono);font-size:11px;color:var(--faint)}
+
+/* ============================================================ demo */
+.demo{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:28px;align-items:center;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:26px;
+}
+@media (max-width:860px){ .demo{grid-template-columns:1fr;padding:20px} }
+.demo ol{margin:16px 0 0;padding-left:19px;color:var(--muted);font-size:14.5px;line-height:1.8}
+.demo code{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+
+/* ============================================================ paper + footer */
+pre{
+  margin:0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:17px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--muted);
+}
+.limits{margin:0;padding-left:19px;color:var(--muted);font-size:15px;line-height:1.75}
+.limits li{margin-bottom:7px}
+footer{padding-block:38px 60px;color:var(--faint);font-size:13px}
+footer p{margin:0 0 8px;max-width:70ch}
+footer .mono{font-family:var(--mono);font-size:11px}
+
+/* ============================================================ lightbox */
+.lb{position:fixed;inset:0;z-index:90;background:rgba(12,16,24,.90);display:flex;align-items:center;justify-content:center;padding:24px}
+.lb[hidden]{display:none}
+.lb-inner{max-width:min(1000px,92vw);width:100%}
+.lb video{width:100%;border-radius:var(--r);background:#000;max-height:74vh;object-fit:contain}
+.lb-bar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}
+.lb-bar .t{font-size:14.5px;font-weight:500;color:#fff}
+.lb-bar .s{font-family:var(--mono);font-size:11.5px;color:#aab3c4}
+.lb-close{
+  position:absolute;top:16px;right:18px;background:#fff;border:1px solid var(--line-2);
+  border-radius:99px;width:36px;height:36px;font-size:18px;cursor:pointer;line-height:1;color:var(--ink);
+}
+.lb-close:focus-visible{outline:2px solid var(--ours);outline-offset:2px}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">PREDICTED<span>·</span>FUTURES</a>
+    <a class="jump" href="#idea">Overview</a>
+    <a class="jump" href="#abstract">Abstract</a>
+    <a class="jump" href="#pipeline">Pipeline</a>
+    <a class="jump" href="#viewer">3D viewer</a>
+    <a class="jump" href="#goals">Goal error</a>
+    <a class="jump" href="#cost">Planning cost</a>
+    <a class="jump" href="#tolerance">Sensitivity</a>
+    <a class="jump" href="#rollouts">Rollouts</a>
+    <a class="jump" href="#real">Real robot</a>
+    <a class="jump" href="#demo">Demo</a>
+    <a class="jump" href="#paper">Paper</a>
+  </div>
+</nav>
+
+<!-- ======================================================== hero -->
+<header class="hero" id="top">
+  <div class="wrap hero-text">
+    <p class="venue">Preprint</p>
+    <h1>Predicted Futures Are Not Enough
+      <span class="thin">Learning Executable Goals for Robot Manipulation</span>
+    </h1>
+    <p class="authors">
+      Tzu-Yu Chuang<sup>1</sup>, Ching-Hsiang Chang<sup>2</sup>, Yi-Hsiu Lee<sup>2</sup>,
+      Min Sun<sup>2</sup>, YuanFu Yang<sup>1</sup>
+      <span class="affil">
+        <sup>1</sup>National Yang Ming Chiao Tung University &nbsp;
+        <sup>2</sup>National Tsing Hua University
+      </span>
+    </p>
+    <div class="btns">
+      <a class="btn primary soon" href="#" aria-disabled="true">Paper <span class="later">soon</span></a>
+      <a class="btn soon" href="#" aria-disabled="true">arXiv <span class="later">soon</span></a>
+      <a class="btn soon" href="#" aria-disabled="true">Code <span class="later">soon</span></a>
+      <a class="btn soon" href="#" aria-disabled="true">Models <span class="later">soon</span></a>
+      <a class="btn soon" href="#demo" aria-disabled="true">Demo <span class="later">soon</span></a>
+    </div>
+  </div>
+</header>
+
+<!-- ======================================================== overview -->
+<section id="idea">
+  <div class="wrap">
+    <p class="eyebrow">Overview</p>
+    <figure class="frame video-hero">
+      <video src="static/videos/overview.mp4" poster="static/videos/overview.jpg"
+             controls preload="none" playsinline></video>
+    </figure>
+  </div>
+</section>
+
+<!-- ======================================================== abstract -->
+<section id="abstract">
+  <div class="wrap">
+    <h2 class="centered">Abstract</h2>
+    <p class="abstract">
+      Generative world models provide rich predictions of how manipulation scenes may evolve toward task
+      objectives, yet those futures do not directly expose the compact task variables required by control.
+      When training supervises future prediction alone, terminal goal accuracy is not an explicit learning
+      objective, even when geometric recovery is available. We present Entity-Level Goal Readout, a learned
+      prediction-to-execution interface that makes the executable terminal goal an explicit output of a 3D
+      trace world model. It combines object-centric pose prediction with translation grounded in observed
+      depth to produce a compact goal in SE(3). A shared Pose-Native Executor consumes this fixed goal with
+      online object-pose feedback for closed-loop control without rerunning the world model. Across five
+      manipulation tasks, the pipeline achieves a mean success rate of 79.69%. Goal diagnostics directly
+      measure terminal goal accuracy, while controlled translation perturbations characterize how execution
+      degrades under goal error. Zero-shot deployment on a Franka arm achieves 73.33% success on nominal
+      StackCube, 66.67% with distractors, and 75.00% on PickPlate with a target unseen during policy
+      training. These results support treating the prediction-to-execution interface as an explicit learned
+      component of world-model planning rather than incidental post-processing in the control pipeline itself.
+    </p>
+  </div>
+</section>
+
+<!-- ======================================================== pipeline -->
+<section id="pipeline" class="tint">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Pipeline</p>
+      <h2>One observation in, one executable goal out</h2>
+    </div>
+    <div class="pipe">
+    <div class="arch">
+      <img src="static/images/fig3_overview.jpg"
+           alt="System architecture: episode input, planner with frozen encoders, the goal readout, and the pose-native executor">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <mask id="spotmask">
+            <rect width="100" height="100" fill="#fff"></rect>
+            <rect class="hole" x="0" y="0" width="100" height="100" fill="#000"></rect>
+          </mask>
+        </defs>
+        <rect width="100" height="100" fill="rgba(246,248,251,.80)" mask="url(#spotmask)"></rect>
+        <rect class="ring" x="0" y="0" width="100" height="100"
+              fill="none" stroke="#d9551f" stroke-width=".35" vector-effect="non-scaling-stroke"></rect>
+      </svg>
+      <p class="arch-cap" id="arch-cap"></p>
+    </div>
+    <div class="pipe-side">
+      <div class="pipe-stage" id="pipe-stage"></div>
+      <ol class="pipe-steps" id="pipe-steps"></ol>
+    </div>
+    </div>
+    <p class="cap" style="margin-top:14px">
+      Highlighted above: where in the architecture the selected step happens.
+      Frozen encoders are blue in the figure, fine-tuned parts orange.
+    </p>
+  </div>
+</section>
+
+<!-- ======================================================== 3D viewer -->
+<section id="viewer" class="tint">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Explore</p>
+      <h2>Turn the prediction around</h2>
+      <p class="lede">Three successful episodes per task, over the observed scene. Only query points that
+        actually move are drawn. Drag to orbit, scroll to zoom, scrub through time. In the
+        <b>diverging</b> episodes the traces miss badly, the goal does not, and the rollout still succeeds.</p>
+    </div>
+    <div class="viewer" data-viewer="traces">
+      <div class="canvas-wrap">
+        <canvas></canvas>
+        <div class="v-readout" data-role="readout"></div>
+        <div class="v-hint">drag · orbit &nbsp;&nbsp; scroll · zoom</div>
+      </div>
+      <div class="v-panel">
+        <div>
+          <span class="v-label">Task</span>
+          <div class="btnrow tasks" data-role="tasks" role="group" aria-label="Task"></div>
+        </div>
+        <div>
+          <span class="v-label">Episode</span>
+          <div class="btnrow eps" data-role="episodes" role="group" aria-label="Episode"></div>
+          <p class="epnote" data-role="epnote"></p>
+          <div class="v-row">
+            <button class="v-btn" data-role="play" type="button" aria-pressed="false">Play</button>
+            <button class="v-btn" data-role="reset" type="button">Reset view</button>
+          </div>
+        </div>
+        <div>
+          <span class="v-label">Time</span>
+          <input type="range" data-role="time" min="0" max="0" value="0" step="1">
+        </div>
+        <div>
+          <span class="v-label">Layers</span>
+          <div class="layers" data-role="layers"></div>
+        </div>
+      </div>
+    </div>
+    <div class="defs">
+      <p>
+        <span class="chip pred"><span class="dot"></span>predicted</span>
+        Where the 3D Trace Planner said each query point would go. It sees the frame&#8209;0 RGB-D and the
+        instruction, runs <b>once</b>, and never observes the rollout.
+      </p>
+      <p>
+        <span class="chip exec"><span class="dot"></span>executed</span>
+        Where those same points actually went while the Pose-Native Executor drove the object. Same query
+        points, same starting frame, 20&nbsp;Hz closed loop.
+      </p>
+      <p class="defs-note">
+        The two are the <b>same query points</b>, so any gap between them is prediction error &mdash; and it
+        is large. On this StackCube frame the predicted trace stops about <b>120 mm</b> short of where the
+        cube actually ends up, yet the goal handed to the executor is off by <b>1.6 mm</b>. Both numbers are
+        in the panel, and the ratio is the argument: the endpoint of a predicted trace is not a goal. The
+        goal is a separate learned readout, which is why it stays accurate while the trace does not. The
+        <b>diverging</b> frames are the extreme case &mdash; the traces miss badly, the goal does not, and
+        the rollout still succeeds.
+      </p>
+    </div>
+    <p class="cap" style="margin-top:14px">
+      World frame: ManiSkill table frame, Z&#8209;up, metres, table surface at z&nbsp;=&nbsp;0.
+      Scene is the frame&#8209;0 depth image unprojected, cropped to the workspace the episode uses and
+      voxel&#8209;downsampled to 6500 points. the traces drawn are the ones on the manipulated object; the arm is shown as
+      geometry that moves rather than as a second bundle of lines.
+    </p>
+  </div>
+</section>
+
+<!-- ======================================================== goal inspector -->
+<section id="goals">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Goal accuracy</p>
+      <h2>How far off is the goal?</h2>
+      <p class="lede">The three tasks the paper reports a terminal goal position error for. Traces turned
+        down, poses turned up: the shell is the planner's error for that episode, and the dashed frame is
+        where the object actually had to end up.</p>
+    </div>
+    <div class="viewer" data-viewer="goals">
+      <div class="canvas-wrap">
+        <canvas></canvas>
+        <div class="v-readout" data-role="readout"></div>
+        <div class="v-hint">drag · orbit &nbsp;&nbsp; scroll · zoom</div>
+      </div>
+      <div class="v-panel">
+        <div>
+          <span class="v-label">Task</span>
+          <div class="btnrow tasks" data-role="tasks" role="group" aria-label="Task"></div>
+        </div>
+        <div>
+          <span class="v-label">Episode</span>
+          <div class="btnrow eps" data-role="episodes" role="group" aria-label="Episode"></div>
+          <p class="epnote" data-role="epnote"></p>
+          <div class="v-row">
+            <button class="v-btn" data-role="play" type="button" aria-pressed="false">Play</button>
+            <button class="v-btn" data-role="reset" type="button">Reset view</button>
+          </div>
+        </div>
+        <div>
+          <span class="v-label">Time</span>
+          <input type="range" data-role="time" min="0" max="0" value="0" step="1">
+        </div>
+        <div>
+          <span class="v-label">Layers</span>
+          <div class="layers" data-role="layers"></div>
+        </div>
+        <div>
+          <span class="v-label">Mean goal error · Table I</span>
+          <div class="layers methods" data-role="methods"></div>
+        </div>
+      </div>
+    </div>
+    <p class="cap" style="margin-top:14px">
+      Each ring is that method's <b>mean</b> terminal goal position error for this task, drawn about the true
+      goal. They are per-task means over the evaluation set, not per-episode predictions &mdash; the export
+      carries a predicted goal for our method only, which is the one number shown on the canvas.
+    </p>
+
+    <div class="chartcard" style="margin-top:30px">
+      <div class="chartbar">
+        <div class="legend">
+          <span><i style="background:#579a3f"></i>Prior work</span>
+          <span><i style="background:#2e9bb5"></i>TraceGen + Rigid Readout (K=1)</span>
+          <span><i style="background:#2a5f9e"></i>TraceGen + Rigid Readout (K=4)</span>
+          <span><i style="background:#d9602b"></i>Entity-Level Goal Readout</span>
+          <span><i class="sd"></i>&plusmn;1 SD</span>
+        </div>
+        <div class="viewtoggle" role="group" aria-label="Chart or table">
+          <button type="button" id="gview-chart" aria-pressed="true">Chart</button>
+          <button type="button" id="gview-table" aria-pressed="false">Table</button>
+        </div>
+      </div>
+      <div class="plot" id="goalplot"><div class="tip" id="goaltip" role="status"></div></div>
+      <div class="tscroll" id="goaltable" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Planner → goal</th><th scope="col">Represents</th>
+              <th scope="col">PickCube</th><th scope="col">PegInsertionSide</th><th scope="col">StackCube</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Cosmos 3 Edge</td><td>RGB video</td><td>141.3 <span class="sd">&plusmn;89.3</span></td><td>348.2 <span class="sd">&plusmn;214.9</span></td><td>87.6 <span class="sd">&plusmn;61.6</span></td></tr>
+            <tr><td>TesserAct, adapted</td><td>RGB-DN video</td><td>456.9 <span class="sd">&plusmn;158.3</span></td><td>76.9 <span class="sd">&plusmn;38.2</span></td><td>224.8 <span class="sd">&plusmn;89.0</span></td></tr>
+            <tr><td>Track2Act, adapted</td><td>2D tracks</td><td>167.5 <span class="sd">&plusmn;57.0</span></td><td>256.2 <span class="sd">&plusmn;33.0</span></td><td>143.0 <span class="sd">&plusmn;89.0</span></td></tr>
+            <tr><td>Structured-4D, released</td><td>4D geometry</td><td>192.2 <span class="sd">&plusmn;82.9</span></td><td>373.5 <span class="sd">&plusmn;115.3</span></td><td>31.0 <span class="sd">&plusmn;19.3</span></td></tr>
+            <tr><td>Structured-4D, adapted</td><td>4D geometry</td><td>166.4 <span class="sd">&plusmn;61.3</span></td><td>361.4 <span class="sd">&plusmn;83.3</span></td><td>36.3 <span class="sd">&plusmn;20.3</span></td></tr>
+            <tr class="k1"><td>TraceGen + Rigid Readout (K=1)</td><td>3D tracks</td><td>41.1 <span class="sd">&plusmn;21.7</span></td><td>42.6 <span class="sd">&plusmn;31.6</span></td><td>28.9 <span class="sd">&plusmn;38.7</span></td></tr>
+            <tr class="k4"><td>TraceGen + Rigid Readout (K=4)</td><td>3D tracks</td><td>37.2 <span class="sd">&plusmn;19.3</span></td><td>40.8 <span class="sd">&plusmn;33.0</span></td><td>25.4 <span class="sd">&plusmn;38.8</span></td></tr>
+            <tr class="ours"><td>Entity-Level Goal Readout</td><td>3D tracks + goal</td><td>31.5 <span class="sd">&plusmn;20.1</span></td><td>29.4 <span class="sd">&plusmn;16.4</span></td><td>12.8 <span class="sd">&plusmn;34.0</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tnote">
+        Terminal goal position error in mm, mean &plusmn; 1 SD over valid readouts. Lower is better.
+        Whiskers span mean &plusmn; 1 SD and are clipped at zero, since the error is a distance: on StackCube
+        every 3D-track method has an SD larger than its mean, which is a heavy tail of occasional large
+        misses rather than a symmetric spread.
+        Against Rigid Readout (K=4): &minus;15.3% on PickCube, &minus;27.9% on PegInsertionSide, &minus;49.6% on StackCube.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== success table -->
+<section id="success" class="tint">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Simulation</p>
+      <h2>Same executor, better goal, higher success</h2>
+      <p class="lede">Every row drives the <b>same</b> Pose-Native Executor weights. Only the goal changes.</p>
+    </div>
+    <div class="chartcard">
+      <div class="chartbar">
+        <div class="legend">
+          <span><i style="background:#2e9bb5"></i>Rigid Readout (K=1)</span>
+          <span><i style="background:#2a5f9e"></i>Rigid Readout (K=4)</span>
+          <span><i style="background:#d9602b"></i>Entity-Level Goal Readout</span>
+          <span><i class="cap"></i>Oracle goal</span>
+        </div>
+        <div class="viewtoggle" role="group" aria-label="Chart or table">
+          <button type="button" id="view-chart" aria-pressed="true">Chart</button>
+          <button type="button" id="view-table" aria-pressed="false">Table</button>
+        </div>
+      </div>
+      <div class="plot" id="plot">
+        <div class="tip" id="tip" role="status"></div>
+      </div>
+      <div class="tscroll" id="successtable" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Goal source</th>
+              <th scope="col">PickCube</th><th scope="col">LiftPegUpright</th>
+              <th scope="col">PegInsertionSide</th><th scope="col">StackCube</th>
+              <th scope="col">PushCube</th><th scope="col">Mean</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="k1"><td>Rigid Readout (K=1)</td><td>29.80</td><td>70.18</td><td>20.05</td><td>52.47</td><td>99.74</td><td>54.45</td></tr>
+            <tr class="k4"><td>Rigid Readout (K=4)</td><td>46.48</td><td>76.95</td><td>21.88</td><td>54.82</td><td>99.22</td><td>59.87</td></tr>
+            <tr class="ours"><td>Entity-Level Goal Readout</td><td>81.50</td><td>98.35</td><td>32.84</td><td>86.54</td><td>99.20</td><td>79.69</td></tr>
+            <tr class="oracle"><td>Oracle goal</td><td>94.66</td><td>97.27</td><td>36.72</td><td>87.11</td><td>99.74</td><td>&mdash;</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tnote">
+        Success rate in percent, five ManiSkill3 tasks, one shared executor.
+        Mean gain over Rigid Readout (K=4): +19.82 points.
+        Oracle uses the true task goal and bounds what this executor can reach; it has no mean in the paper.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== planning cost -->
+<section id="cost">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Planning cost</p>
+      <h2>One plan per episode, in about a second</h2>
+      <p class="lede">The planner runs <b>once</b>, so its cost is paid once per episode rather than per
+        control step. The executor that follows costs 1.4&nbsp;ms a step at 20&nbsp;Hz.</p>
+    </div>
+    <div class="chartcard">
+      <div class="chartbar">
+        <div class="legend">
+          <span><i style="background:#579a3f"></i>Predicts video</span>
+          <span><i style="background:#2e9bb5"></i>Predicts geometry or tracks</span>
+          <span><i style="background:#d9602b"></i>Predicts a goal &mdash; ours</span>
+          <span class="sizekey">
+            <svg viewBox="0 0 86 26" aria-hidden="true">
+              <circle cx="11" cy="14" r="9"  fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+              <circle cx="38" cy="14" r="11" fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+              <circle cx="70" cy="14" r="13" fill="none" stroke="currentColor" stroke-width="1.1"></circle>
+            </svg>
+            2 &rarr; 19 GB peak memory
+          </span>
+        </div>
+        <div class="viewtoggle" role="group" aria-label="Chart or table">
+          <button type="button" id="cview-chart" aria-pressed="true">Chart</button>
+          <button type="button" id="cview-table" aria-pressed="false">Table</button>
+        </div>
+      </div>
+      <div class="plot" id="costplot"><div class="tip" id="costtip" role="status"></div></div>
+      <div class="tscroll" id="costtable" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Planner</th><th scope="col">Params</th>
+              <th scope="col">Peak memory</th><th scope="col">Time</th><th scope="col">Output</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Cosmos 3 Edge</td><td>9.13B</td><td>19.33 GB</td><td>35.63 s</td><td>81 RGB frames</td></tr>
+            <tr><td>TesserAct</td><td>5.7B</td><td>16.22 GB</td><td>292.0 &plusmn; 4.9 s</td><td>49 RGB-DN frames</td></tr>
+            <tr><td>Track2Act</td><td>469M</td><td>1.91 GB</td><td>3.80 s</td><td>400 2D tracks</td></tr>
+            <tr><td>Structured-4D</td><td>1.1B</td><td>5.71 GB</td><td>4.45 s</td><td>4D point cloud</td></tr>
+            <tr class="ours"><td>Ours</td><td>677.6M</td><td>5.60 GB</td><td>1.27 s</td><td>3D traces + goal</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tnote">
+        Single RTX 5090, after warm-up. Both axes are logarithmic: planning time spans 230&times; from end
+        to end and parameter count 19&times;. Mark area is peak memory. TesserAct is 292.0&nbsp;&plusmn;&nbsp;4.9&nbsp;s;
+        the others were measured once. Switch to the table for the exact figures.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== tolerance -->
+<section id="tolerance">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Sensitivity</p>
+      <h2>Does goal error actually matter?</h2>
+      <p class="lede">Displace the true goal and re-run. A few millimetres are absorbed; past the task's
+        clearance they are not.</p>
+    </div>
+    <div class="duo">
+      <figure>
+        <div class="frame">
+          <img src="static/images/fig7_perturbation.png"
+               alt="Success rate against goal displacement for StackCube and PegInsertionSide" loading="lazy">
+        </div>
+        <figcaption class="cap">
+          Success against displacement · offsets of 0, 5, 10, 20, 30, 50, 80 and 120&nbsp;mm,
+          512 episodes each · PegInsertionSide clearance is 10&nbsp;mm
+        </figcaption>
+      </figure>
+      <figure>
+        <div class="frame">
+          <video src="static/videos/sim_stack_ep_005_pert.mp4" poster="static/videos/sim_stack_ep_005_pert.jpg"
+                 muted loop playsinline preload="none" data-lazy></video>
+        </div>
+        <figcaption class="cap">
+          <b>StackCube, goal displaced 20 mm</b> &mdash; one of the perturbed episodes from the same export.
+          The executor absorbs it and the stack still completes.
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== rollouts -->
+<section id="rollouts">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Rollouts</p>
+      <h2>Four ways it works, per task</h2>
+      <p class="lede">The successful evaluation episodes from the export, chosen before they were watched:
+        two clean, one with the true goal displaced by 20&nbsp;mm, one where the predicted trace diverges.
+        Success rates come from the tables above, never from this selection &mdash; and the failures are in
+        the real-robot section below, with an analysis beside them.</p>
+    </div>
+    <div class="filters">
+      <div class="f">
+        <span class="v-label">Task</span>
+        <select id="f-task" aria-label="Filter by task"></select>
+      </div>
+      <div class="f">
+        <span class="v-label">Episode type</span>
+        <select id="f-cat" aria-label="Filter by episode type"></select>
+      </div>
+      <span class="gcount" id="gcount" aria-live="polite"></span>
+    </div>
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="gempty" hidden>No episodes match these filters.</p>
+  </div>
+</section>
+
+<!-- ======================================================== real robot -->
+<section id="real" class="tint">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Real robot</p>
+      <h2>Zero-shot on a Franka</h2>
+      <p class="lede">Trained only in simulation. No fine-tuning, no real-robot demonstrations. Each trial is
+        shown twice: the <b>side camera</b>, and the <b>384 × 384 RGB the policy actually saw</b>. Outcomes are
+        read from the deployment log, not judged from the footage.</p>
+    </div>
+
+    <p class="realhead ok">Two successes per setting</p>
+    <div class="realgrid" id="real-ok"></div>
+
+    <p class="realhead bad">One failure per setting</p>
+    <div class="realgrid" id="real-bad"></div>
+
+    <div class="failnote">
+      <p class="eyebrow">Failure analysis</p>
+      <p>All three failures above were logged with <b>sim_success = true</b> and a clean exit code: the goal
+        the readout produced did drive a successful rollout in simulation, and the miss appeared only on
+        hardware. The gap is therefore in transfer &mdash; online pose estimation and contact &mdash; rather
+        than in the goal itself. That matches the sensitivity result above: at the 12.8&nbsp;mm goal error
+        this readout achieves on StackCube, the executor still has margin, so a real-robot miss is not
+        explained by goal error alone.</p>
+      <p class="note">Outcomes are read from the deployment log, never judged from the footage. Success
+        rates come from the table below, which covers all 54 trials; these six are individual examples.</p>
+    </div>
+
+    <div class="tablecard" style="margin-top:34px">
+      <div class="tscroll">
+        <table>
+          <thead>
+            <tr><th scope="col">Setting</th><th scope="col">Successes</th><th scope="col">Trials</th><th scope="col">Rate</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>StackCube · nominal</td><td>22</td><td>30</td><td>73.33</td></tr>
+            <tr><td>StackCube + distractors · intervention</td><td>8</td><td>12</td><td>66.67</td></tr>
+            <tr><td>PickPlate · unseen target</td><td>9</td><td>12</td><td>75.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tnote">
+        Rates in percent, from the paper. The six trials above are individual examples and are not a sample
+        these rates can be computed from.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== demo -->
+<section id="demo">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Interactive demo</p>
+      <h2>What the readout returns</h2>
+      <p class="lede">Pick a task and a frame. The readout gives back the predicted 3D traces and one
+        executable goal &mdash; a pose, as seven numbers, object-relative. That is the entire interface the
+        executor sees.</p>
+    </div>
+
+    <div class="viewer demo-viewer" data-viewer="demo">
+      <div class="canvas-wrap">
+        <canvas></canvas>
+        <div class="v-readout" data-role="readout"></div>
+        <div class="v-hint">drag · orbit &nbsp;&nbsp; scroll · zoom</div>
+      </div>
+      <div class="v-panel">
+        <div>
+          <span class="v-label">Task</span>
+          <div class="btnrow tasks" data-role="tasks" role="group" aria-label="Task"></div>
+        </div>
+        <div>
+          <span class="v-label">Frame</span>
+          <div class="btnrow eps" data-role="episodes" role="group" aria-label="Frame"></div>
+          <p class="epnote" data-role="epnote"></p>
+          <div class="v-row">
+            <button class="v-btn" data-role="play" type="button" aria-pressed="false">Play</button>
+            <button class="v-btn" data-role="reset" type="button">Reset view</button>
+          </div>
+        </div>
+        <div>
+          <span class="v-label">Time</span>
+          <input type="range" data-role="time" min="0" max="0" value="0" step="1">
+        </div>
+        <div>
+          <span class="v-label">Layers</span>
+          <div class="layers" data-role="layers"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="goalstrip">
+      <span class="v-label">Executable goal &nbsp;&Delta;T&#770;<sub>g</sub></span>
+      <dl data-role="goalnums"></dl>
+      <p class="goalout-note">
+        Object-relative: the goal in the object's own frame at t&nbsp;=&nbsp;0.
+        Translation in metres, rotation as a unit quaternion (x,&nbsp;y,&nbsp;z,&nbsp;w).
+      </p>
+    </div>
+
+    <div class="demo-foot">
+      <div class="upload" aria-describedby="upload-note">
+        <div class="drop" role="group" aria-label="Upload your own frame (not yet live)">
+          <span class="drop-icon" aria-hidden="true">&plus;</span>
+          <span class="drop-title">Drop an RGB-D frame</span>
+          <span class="drop-sub">runs the same readout on your own scene</span>
+          <button class="btn primary soon" type="button" aria-disabled="true" disabled>
+            Choose files <span class="later">soon</span>
+          </button>
+        </div>
+        <dl class="accepts">
+          <dt>RGB</dt><dd>PNG or JPEG</dd>
+          <dt>Depth</dt><dd>aligned to the RGB, in metres (16-bit PNG or <code>.npy</code>)</dd>
+          <dt>Intrinsics</dt><dd><code>K</code> as fx, fy, cx, cy &mdash; OpenCV convention</dd>
+          <dt>Extrinsics</dt><dd><code>T_WC</code>, optional &mdash; without it the goal is returned in the camera frame</dd>
+          <dt>Task</dt><dd>one of the five, to select the planner</dd>
+        </dl>
+      </div>
+
+      <div>
+        <p class="lede" style="margin-top:0">This preview runs from exported episodes. The live version is a
+          <b>Gradio</b> app on <b>Hugging Face Spaces</b>, where the planner and the readout run on a GPU and
+          return the goal for a frame you upload.</p>
+        <ol class="demo-list">
+          <li>Predicted 3D traces and the 24 &times; 24 goal map, side by side</li>
+          <li>The composed goal <code>T&#770;<sub>g</sub></code> and the object-relative <code>&Delta;T&#770;<sub>g</sub></code></li>
+          <li>Every result downloadable as <code>.npz</code>, in the same schema this viewer reads</li>
+        </ol>
+        <p id="upload-note" class="note">
+          The executor is not run online &mdash; it needs a simulator or a robot in the loop. The Space
+          returns the goal; the rollouts above are pre-recorded.
+        </p>
+        <div class="btns" style="justify-content:flex-start">
+          <a class="btn primary soon" href="#" aria-disabled="true">Open on Hugging Face <span class="later">soon</span></a>
+        </div>
+      </div>
+    </div>
+
+    <p class="cap" style="margin-top:16px">
+      The frames above are exported evaluation episodes, so the goal shown is the one the executor actually
+      received. Three per task, for the two tasks whose goal the paper reports a position error for.
+    </p>
+  </div>
+</section>
+
+<!-- ======================================================== paper -->
+<section id="paper">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Cite</p>
+      <h2>BibTeX</h2>
+    </div>
+    <div>
+      <div>
+        <pre>@article{predictedfutures,
+  title   = {Predicted Futures Are Not Enough:
+             Learning Executable Goals for
+             Robot Manipulation},
+  author  = {Chuang, Tzu-Yu and Chang, Ching-Hsiang and
+             Lee, Yi-Hsiu and Sun, Min and Yang, YuanFu},
+  year    = {2026}
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Simulation results use ManiSkill3. Real-robot results use a Franka arm, zero-shot from simulation.
+      Every number on this page comes from the paper's tables.</p>
+    <p class="mono">This page loads no external resources other than its own media and web fonts. Last updated 2026-09-23.</p>
+  </div>
+</footer>
+
+<div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Rollout">
+  <button class="lb-close" id="lb-close" type="button" aria-label="Close">&times;</button>
+  <div class="lb-inner">
+    <video id="lb-video" controls autoplay loop muted playsinline></video>
+    <div class="lb-bar"><span class="t" id="lb-title"></span><span class="s" id="lb-sub"></span></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------------------------------------------------- lazy video
+     Looping clips carry data-lazy: the source attaches and playback starts only
+     once the clip is on screen, so a first load pulls the hero and nothing else. */
+  var io = null;
+  if ("IntersectionObserver" in window) {
+    io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        var v = e.target;
+        if (e.isIntersecting) {
+          if (v.preload === "none") v.preload = "auto";
+          if (!reduce) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+        } else if (!v.paused) {
+          v.pause();
+        }
+      });
+    }, { rootMargin: "140px 0px", threshold: 0.1 });
+  }
+  function watch(v) { if (io) io.observe(v); else if (!reduce) v.play().catch(function () {}); }
+
+  /* Rollout clips hold their last frame for half a second before restarting. The
+     end of the clip is the part worth reading -- whether the cube is on the cube --
+     and an immediate loop snaps away from it before the eye lands. Implemented by
+     dropping `loop` and restarting on `ended`, since a looping element never fires
+     that event. */
+  var HOLD_MS = 500;
+  function holdThenReplay(v) {
+    v.loop = false;
+    v.addEventListener("ended", function () {
+      if (v.dataset.holding) return;
+      v.dataset.holding = "1";
+      setTimeout(function () {
+        delete v.dataset.holding;
+        if (reduce) return;
+        // Only restart if the clip is still on screen; the observer pauses it otherwise.
+        if (!v.paused) return;
+        try { v.currentTime = 0; } catch (e) { return; }
+        var pr = v.play();
+        if (pr && pr.catch) pr.catch(function () {});
+      }, HOLD_MS);
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll("video[data-lazy]"), watch);
+
+  /* ---------------------------------------------------------- pipeline
+     Ten stills, grouped into the four stages the architecture figure is drawn in.
+     Each step names a region of that figure, in normalised coordinates, and the
+     spotlight masks everything outside it. */
+  // A step is [still id, label, region on the architecture figure, optional clip].
+  // Where a clip is named it replaces the still, so a step that is really a motion
+  // -- the arm actually finishing the stack -- is shown as one.
+  var STAGES = [
+    { name: "Observation", steps: [
+      ["T01", "RGB observation",    [0.010, 0.076, 0.142, 0.181]],
+      ["T02", "Aligned depth",      [0.010, 0.256, 0.142, 0.172]]
+    ]},
+    { name: "Planner", steps: [
+      ["T03", "Fused visual tokens", [0.170, 0.080, 0.665, 0.240]],
+      ["T04", "Predicted 3D traces", [0.178, 0.340, 0.245, 0.360]]
+    ]},
+    { name: "Goal readout", steps: [
+      ["T05", "Keypose chain",       [0.430, 0.340, 0.402, 0.360]],
+      ["T06", "Entity attention",    [0.452, 0.428, 0.196, 0.262]],
+      ["T07", "One SE(3) goal",      [0.652, 0.435, 0.144, 0.252]]
+    ]},
+    { name: "Executor", steps: [
+      ["T08", "Executor starts",     [0.165, 0.728, 0.670, 0.268]],
+      ["T09", "Object pose vs goal", [0.375, 0.780, 0.200, 0.132]],
+      ["T10", "Goal reached",        [0.845, 0.005, 0.152, 0.990], "real_ok_nominal_a_side"]
+    ]}
+  ];
+
+  (function () {
+    var stage = document.getElementById("pipe-stage"),
+        list = document.getElementById("pipe-steps"),
+        hole = document.querySelector(".arch .hole"),
+        ring = document.querySelector(".arch .ring"),
+        archCap = document.getElementById("arch-cap");
+    if (!stage || !list) return;
+
+    var flat = [], imgs = [], btns = [], cur = 0, timer = null;
+    STAGES.forEach(function (g) {
+      g.steps.forEach(function (st) {
+        flat.push({ stage: g.name, id: st[0], label: st[1], box: st[2], clip: st[3] });
+      });
+    });
+
+    flat.forEach(function (st, i) {
+      var el;
+      if (st.clip) {
+        el = document.createElement("video");
+        el.src = "static/videos/" + st.clip + ".mp4";
+        el.poster = "static/videos/" + st.clip + ".jpg";
+        el.muted = true;
+        el.loop = true;
+        el.playsInline = true;
+        el.preload = "none";
+        el.setAttribute("aria-label", st.label);
+      } else {
+        el = document.createElement("img");
+        el.src = "static/images/pipe_" + st.id + ".jpg";
+        el.alt = st.label;
+        el.loading = i < 2 ? "eager" : "lazy";
+      }
+      if (i === 0) el.className = "on";
+      stage.appendChild(el);
+      imgs.push(el);
+    });
+
+    var k = 0;
+    STAGES.forEach(function (g) {
+      var head = document.createElement("li");
+      head.className = "grp";
+      head.appendChild(document.createTextNode(g.name));
+      list.appendChild(head);
+
+      g.steps.forEach(function () {
+        var idx = k++;
+        var st = flat[idx];
+        var li = document.createElement("li"), b = document.createElement("button");
+        b.type = "button";
+        b.setAttribute("aria-current", idx === 0 ? "true" : "false");
+        var num = document.createElement("span");
+        num.className = "num";
+        num.textContent = (idx + 1 < 10 ? "0" : "") + (idx + 1);
+        var t = document.createElement("span");
+        t.className = "t";
+        t.textContent = st.label;
+        b.appendChild(num); b.appendChild(t);
+        b.addEventListener("click", function () { show(idx); stop(); });
+        li.appendChild(b); list.appendChild(li); btns.push(b);
+      });
+    });
+
+    function spotlight(st) {
+      if (!hole || !ring) return;
+      var box = st.box, pad = 0.006;
+      var x = Math.max(0, box[0] - pad) * 100,
+          y = Math.max(0, box[1] - pad) * 100,
+          w = Math.min(1, box[2] + pad * 2) * 100,
+          h = Math.min(1, box[3] + pad * 2) * 100;
+      [hole, ring].forEach(function (el) {
+        el.setAttribute("x", x.toFixed(2));
+        el.setAttribute("y", y.toFixed(2));
+        el.setAttribute("width", w.toFixed(2));
+        el.setAttribute("height", h.toFixed(2));
+      });
+      if (archCap) archCap.textContent = st.stage + " · " + st.label;
+    }
+
+    function show(i) {
+      var prev = imgs[cur];
+      prev.classList.remove("on");
+      if (prev.pause) prev.pause();
+      btns[cur].setAttribute("aria-current", "false");
+      cur = i;
+      var now = imgs[cur];
+      now.classList.add("on");
+      if (now.play && !reduce) {
+        if (now.preload === "none") now.preload = "auto";
+        var pr = now.play();
+        if (pr && pr.catch) pr.catch(function () {});
+      }
+      btns[cur].setAttribute("aria-current", "true");
+      spotlight(flat[cur]);
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    spotlight(flat[0]);
+
+    if (!reduce && io) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          if (e.isIntersecting && !timer) timer = setInterval(function () {
+            // Give a clip long enough to read; a still does not need as much.
+            show((cur + 1) % flat.length);
+          }, flat[cur].clip ? 5200 : 2600);
+          else if (!e.isIntersecting) stop();
+        });
+      }, { threshold: 0.25 }).observe(stage);
+    }
+  })();
+
+  /* ---------------------------------------------------------- success chart
+     Grouped bars, one group per task plus the mean. Series colors are the paper's
+     own values, darkened just enough to clear 3:1 on white. Green and blue collapse under tritanopia, so identity
+     never rests on hue: every bar is labelled with its value, the legend is always
+     present, and the same numbers are one click away as a table. */
+  (function () {
+    var host = document.getElementById("plot");
+    if (!host) return;
+    var tip = document.getElementById("tip");
+
+    var TASKS = ["PickCube", "LiftPegUpright", "PegInsertionSide", "StackCube", "PushCube", "Mean"];
+    var SERIES = [
+      { key: "k1",    label: "Rigid Readout (K=1)",       color: "#2e9bb5",
+        v: [29.80, 70.18, 20.05, 52.47, 99.74, 54.45] },
+      { key: "k4",    label: "Rigid Readout (K=4)",       color: "#2a5f9e",
+        v: [46.48, 76.95, 21.88, 54.82, 99.22, 59.87] },
+      { key: "ours",  label: "Entity-Level Goal Readout", color: "#d9602b",
+        v: [81.50, 98.35, 32.84, 86.54, 99.20, 79.69] }
+    ];
+    // Oracle is the ceiling this executor can reach, not a fourth method, so it is
+    // drawn as a cap over each group. The paper gives it no mean.
+    var ORACLE = [94.66, 97.27, 36.72, 87.11, 99.74, null];
+
+    var W = 1000, H = 400, ML = 44, MR = 14, MT = 26, MB = 54;
+    var PW = W - ML - MR, PH = H - MT - MB;
+    var NS = "http://www.w3.org/2000/svg";
+
+    function el(name, attrs) {
+      var e = document.createElementNS(NS, name);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    }
+    function y(v) { return MT + PH * (1 - v / 100); }
+
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+      "aria-label": "Success rate by task for three goal sources, with the oracle goal as a ceiling" });
+
+    [0, 25, 50, 75, 100].forEach(function (v) {
+      svg.appendChild(el("line", { class: "gridline", x1: ML, x2: ML + PW, y1: y(v), y2: y(v) }));
+      var t = el("text", { class: "axis", x: ML - 9, y: y(v) + 4, "text-anchor": "end" });
+      t.textContent = v;
+      svg.appendChild(t);
+    });
+    var unit = el("text", { class: "axis", x: ML - 9, y: MT - 11, "text-anchor": "end" });
+    unit.textContent = "%";
+    svg.appendChild(unit);
+
+    var gw = PW / TASKS.length;
+    var inner = gw * 0.74, bw = (inner - 2 * (SERIES.length - 1)) / SERIES.length;
+
+    TASKS.forEach(function (task, gi) {
+      var gx = ML + gw * gi + (gw - inner) / 2;
+
+      SERIES.forEach(function (ser, si) {
+        var v = ser.v[gi];
+        if (v == null) return;
+        var bx = gx + si * (bw + 2), by = y(v), bh = MT + PH - by;
+        var r = el("rect", { class: "bar", x: bx.toFixed(1), y: by.toFixed(1),
+          width: bw.toFixed(1), height: Math.max(1, bh).toFixed(1),
+          rx: 4, fill: ser.color });
+        r.addEventListener("mouseenter", function (e) { showTip(e, task, ser, v, gi); });
+        r.addEventListener("mousemove", function (e) { showTip(e, task, ser, v, gi); });
+        r.addEventListener("mouseleave", hideTip);
+        svg.appendChild(r);
+
+        var lab = el("text", { class: "vallab" + (ser.key === "ours" ? " lead" : ""),
+          x: (bx + bw / 2).toFixed(1), y: (by - 6).toFixed(1), "text-anchor": "middle" });
+        lab.textContent = v.toFixed(1);
+        svg.appendChild(lab);
+      });
+
+      if (ORACLE[gi] != null) {
+        svg.appendChild(el("line", { class: "cap", x1: gx - 3, x2: gx + inner + 3,
+          y1: y(ORACLE[gi]), y2: y(ORACLE[gi]) }));
+      }
+
+      var gl = el("text", { class: "grouplab", x: (ML + gw * gi + gw / 2).toFixed(1),
+        y: H - MB + 26, "text-anchor": "middle" });
+      gl.textContent = task;
+      svg.appendChild(gl);
+    });
+
+    svg.appendChild(el("line", { class: "gridline", x1: ML, x2: ML + PW, y1: y(0), y2: y(0) }));
+    host.insertBefore(svg, tip);
+
+    function showTip(e, task, ser, v, gi) {
+      if (!tip) return;
+      var hostBox = host.getBoundingClientRect();
+      tip.innerHTML = "";
+      var b = document.createElement("b");
+      b.textContent = task + " · " + ser.label;
+      var val = document.createElement("span");
+      val.className = "v";
+      val.textContent = v.toFixed(2) + "% success";
+      tip.appendChild(b); tip.appendChild(val);
+      if (ORACLE[gi] != null) {
+        var o = document.createElement("span");
+        o.className = "v";
+        o.style.color = "#c8b894";
+        o.textContent = "  ·  oracle " + ORACLE[gi].toFixed(2) + "%";
+        tip.appendChild(o);
+      }
+      tip.classList.add("on");
+      var x = e.clientX - hostBox.left, ty = e.clientY - hostBox.top;
+      tip.style.left = Math.min(Math.max(8, x + 14), hostBox.width - tip.offsetWidth - 8) + "px";
+      tip.style.top = Math.max(4, ty - tip.offsetHeight - 12) + "px";
+    }
+    function hideTip() { if (tip) tip.classList.remove("on"); }
+
+    var bChart = document.getElementById("view-chart"),
+        bTable = document.getElementById("view-table"),
+        table = document.getElementById("successtable");
+    function setView(chart) {
+      host.hidden = !chart;
+      table.hidden = chart;
+      bChart.setAttribute("aria-pressed", chart ? "true" : "false");
+      bTable.setAttribute("aria-pressed", chart ? "false" : "true");
+    }
+    bChart.addEventListener("click", function () { setView(true); });
+    bTable.addEventListener("click", function () { setView(false); });
+  })();
+
+  /* ---------------------------------------------------------- lightbox */
+  var lb = document.getElementById("lb"),
+      lbv = document.getElementById("lb-video"),
+      lbt = document.getElementById("lb-title"),
+      lbs = document.getElementById("lb-sub"),
+      lastFocus = null;
+
+  function openLb(src, poster, title, sub) {
+    lastFocus = document.activeElement;
+    lbv.poster = poster || "";
+    lbv.src = src;
+    lbt.textContent = title || "";
+    lbs.textContent = sub || "";
+    lb.hidden = false;
+    document.getElementById("lb-close").focus();
+    lbv.play().catch(function () {});
+  }
+  function closeLb() {
+    lb.hidden = true; lbv.pause(); lbv.removeAttribute("src"); lbv.load();
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  document.getElementById("lb-close").addEventListener("click", closeLb);
+  lb.addEventListener("click", function (e) { if (e.target === lb) closeLb(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !lb.hidden) closeLb(); });
+
+  /* ---------------------------------------------------------- rollout gallery */
+  var CAT_ORDER = ["clean", "pert", "div", "fail"];
+  var grid = document.getElementById("grid"),
+      gempty = document.getElementById("gempty"),
+      gcount = document.getElementById("gcount"),
+      fTask = document.getElementById("f-task"),
+      fCat = document.getElementById("f-cat"),
+      fOut = null,
+      ROLLOUTS = [];
+
+  function fill(sel, values, allLabel) {
+    sel.innerHTML = "";
+    var o = document.createElement("option");
+    o.value = ""; o.textContent = allLabel;
+    sel.appendChild(o);
+    values.forEach(function (v) {
+      var x = document.createElement("option");
+      x.value = v[0]; x.textContent = v[1];
+      sel.appendChild(x);
+    });
+  }
+
+  function renderGallery() {
+    var t = fTask.value, c = fCat.value, o = fOut ? fOut.value : "";
+    var rows = ROLLOUTS.filter(function (r) {
+      return (!t || r.task === t) && (!c || r.category === c) && (!o || r.outcome === o);
+    });
+    grid.innerHTML = "";
+    rows.forEach(function (r) {
+      var card = document.createElement("button");
+      card.type = "button"; card.className = "card";
+
+      var frame = document.createElement("div");
+      frame.className = "frame";
+      var v = document.createElement("video");
+      v.src = "static/videos/" + r.clip + ".mp4";
+      v.poster = "static/videos/" + r.clip + ".jpg";
+      v.muted = true; v.loop = true; v.playsInline = true; v.preload = "none";
+      v.setAttribute("data-lazy", "");
+      holdThenReplay(v);
+      frame.appendChild(v);
+
+      var info = document.createElement("div");
+      info.className = "info";
+      var ttl = document.createElement("div");
+      ttl.className = "ttl"; ttl.textContent = r.task;
+      var sub = document.createElement("div");
+      sub.className = "sub";
+
+      var badge = document.createElement("span");
+      badge.className = "badge " + (r.outcome === "success" ? "ok" : "bad");
+      badge.textContent = r.outcome;
+      sub.appendChild(badge);
+
+      var lab = document.createElement("span");
+      lab.textContent = r.category_label;
+      sub.appendChild(lab);
+
+      if (r.goal_error_mm !== null && r.goal_error_mm !== undefined) {
+        var err = document.createElement("span");
+        err.textContent = r.goal_error_mm + " mm";
+        sub.appendChild(err);
+      }
+
+      info.appendChild(ttl); info.appendChild(sub);
+      card.appendChild(frame); card.appendChild(info);
+      card.addEventListener("click", function () {
+        openLb("static/videos/" + r.clip + ".mp4", "static/videos/" + r.clip + ".jpg",
+               r.task + " · " + r.category_label,
+               r.outcome + (r.goal_error_mm != null ? " · goal error " + r.goal_error_mm + " mm" : "") +
+               " · " + r.steps + " steps at " + r.fps + " Hz");
+      });
+      grid.appendChild(card);
+      watch(v);
+    });
+    gempty.hidden = rows.length > 0;
+    gcount.textContent = rows.length + " of " + ROLLOUTS.length + " episodes";
+  }
+
+  fetch("static/rollouts.json").then(function (r) { return r.json(); }).then(function (data) {
+    // Grouped by task in the paper's order, and within a task the four successes
+    // before the failure, so each block reads as "four ways it works, one way it
+    // does not" rather than as an arbitrary shuffle.
+    var TASK_ORDER = ["PickCube", "LiftPegUpright", "PegInsertionSide", "StackCube", "PushCube"];
+    var CAT_RANK = { clean: 0, pert: 1, div: 2, fail: 3 };
+    data.sort(function (a, b) {
+      return (TASK_ORDER.indexOf(a.task) - TASK_ORDER.indexOf(b.task)) ||
+             ((CAT_RANK[a.category] == null ? 9 : CAT_RANK[a.category]) -
+              (CAT_RANK[b.category] == null ? 9 : CAT_RANK[b.category])) ||
+             a.clip.localeCompare(b.clip);
+    });
+    ROLLOUTS = data;
+    var tasks = [], cats = {};
+    data.forEach(function (r) {
+      if (tasks.indexOf(r.task) < 0) tasks.push(r.task);
+      cats[r.category] = r.category_label;
+    });
+    fill(fTask, tasks.map(function (t) { return [t, t]; }), "All tasks");
+    fill(fCat, CAT_ORDER.filter(function (c) { return cats[c]; }).map(function (c) { return [c, cats[c]]; }), "All types");
+    [fTask, fCat].forEach(function (s) { s.addEventListener("change", renderGallery); });
+    renderGallery();
+  }).catch(function () {
+    gempty.hidden = false;
+    gempty.textContent = "Rollout index could not be loaded.";
+  });
+
+  /* ---------------------------------------------------------- real robot
+     Six trials from the deployment record. Outcomes come from its results log; the
+     side camera is the untouched phone recording and the RGB is what the policy saw. */
+  /* One success and one failure for each setting in Table IV. The setting comes from
+     the run's own command line, the outcome from the deployment log, and every clip
+     was checked against its own last frame. */
+  /* Two successes and one failure for each setting in Table IV. The setting comes
+     from the run's own command line, the outcome from the deployment log, and every
+     clip was checked against its own last frame. */
+  var REAL = {
+    ok: [
+      ["real_ok_nominal_a",  "r152", "StackCube \u00b7 nominal", "Red cube released on the green cube."],
+      ["real_ok_nominal_b",  "r153", "StackCube \u00b7 nominal", "A second nominal trial, different starting layout."],
+      ["real_ok_distract_a", "r171", "StackCube + distractors", "Stacked with a plate and a spare cube on the table."],
+      ["real_ok_distract_b", "r172", "StackCube + distractors", "A second distractor arrangement."],
+      ["real_ok_plate_a",    "r176", "PickPlate \u00b7 unseen target", "Cube released onto a plate the policy never saw in training."],
+      ["real_ok_plate_b",    "r177", "PickPlate \u00b7 unseen target", "A second plate placement."]
+    ],
+    bad: [
+      ["real_bad_nominal",  "r159", "StackCube \u00b7 nominal",
+       "Released beside the target: the two cubes end side by side, not stacked."],
+      ["real_bad_distract", "r173", "StackCube + distractors",
+       "Released among the distractors; the cubes end unstacked."],
+      ["real_bad_plate",    "r180", "PickPlate \u00b7 unseen target",
+       "The plate is reached, but the cube does not end on it."]
+    ]
+  };
+
+  Object.keys(REAL).forEach(function (kind) {
+    var host = document.getElementById("real-" + kind);
+    if (!host) return;
+    REAL[kind].forEach(function (r) {
+      var name = r[0], tag = r[1], task = r[2], note = r[3];
+      var card = document.createElement("figure");
+      card.className = "rcard " + kind;
+
+      var pair = document.createElement("div");
+      pair.className = "rpair";
+
+      function cell(kls, src, poster, label) {
+        var d = document.createElement("div");
+        d.className = kls;
+        var tagEl = document.createElement("span");
+        tagEl.className = "rtag"; tagEl.textContent = label;
+        var v = document.createElement("video");
+        v.src = src; v.poster = poster;
+        v.muted = true; v.loop = true; v.playsInline = true; v.preload = "none";
+        v.setAttribute("data-lazy", "");
+        v.loop = false;
+        d.appendChild(tagEl); d.appendChild(v);
+        pair.appendChild(d);
+        watch(v);
+      }
+      cell("side", "static/videos/" + name + "_side.mp4", "static/videos/" + name + "_side.jpg", "side camera");
+      cell("rgb", "static/videos/" + name + "_rgb.mp4", "static/videos/" + name + "_rgb.jpg", "policy RGB");
+
+      var vids = [].slice.call(pair.querySelectorAll("video"));
+      var bar = document.createElement("div");
+      bar.className = "rbar";
+      var play = document.createElement("button");
+      play.type = "button";
+      play.className = "v-btn sm";
+      play.textContent = "Pause";
+      var range = document.createElement("input");
+      range.type = "range";
+      range.min = 0; range.max = 1000; range.value = 0; range.step = 1;
+      range.setAttribute("aria-label", "Playback position");
+      bar.appendChild(play); bar.appendChild(range);
+
+      var scrubbing = false;
+      play.addEventListener("click", function () {
+        var paused = vids[0].paused;
+        vids.forEach(function (v) {
+          if (paused) { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); }
+          else v.pause();
+        });
+        play.textContent = paused ? "Pause" : "Play";
+      });
+      range.addEventListener("input", function () {
+        scrubbing = true;
+        var f = range.value / 1000;
+        vids.forEach(function (v) {
+          if (v.duration) { try { v.currentTime = f * v.duration; } catch (e) {} }
+        });
+      });
+      range.addEventListener("change", function () { scrubbing = false; });
+      vids[0].addEventListener("timeupdate", function () {
+        if (scrubbing || !vids[0].duration) return;
+        range.value = Math.round((vids[0].currentTime / vids[0].duration) * 1000);
+      });
+      // Restart the pair together, so they never drift apart across loops.
+      vids[0].addEventListener("ended", function () {
+        setTimeout(function () {
+          vids.forEach(function (v) {
+            try { v.currentTime = 0; } catch (e) {}
+            if (!reduce) { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); }
+          });
+        }, HOLD_MS);
+      });
+
+      var body = document.createElement("figcaption");
+      body.className = "rbody";
+      var t = document.createElement("span");
+      t.className = "t"; t.textContent = task;
+      var s = document.createElement("span");
+      s.className = "s"; s.textContent = tag;
+      body.appendChild(t); body.appendChild(s);
+
+      var cap = document.createElement("figcaption");
+      cap.className = "cap";
+      cap.style.margin = "0 14px 14px";
+      cap.textContent = note;
+
+      card.appendChild(pair); card.appendChild(bar); card.appendChild(body); card.appendChild(cap);
+      host.appendChild(card);
+    });
+  });
+
+  /* ---------------------------------------------------------- goal error chart
+     Table I as small multiples: one panel per task, one row per method, a shared
+     linear scale so the panels compare. The spread is 36x from end to end, so a
+     shared linear axis is the honest picture -- the prior-work bars really are that
+     long. Colour carries family, not identity: prior work is one neutral, the two
+     Rigid Readout settings are two steps of one hue because they are one method at
+     two values of K, and ours is the single warm accent. The row label carries
+     identity, so nothing rests on hue alone. */
+  (function () {
+    var host = document.getElementById("goalplot");
+    if (!host) return;
+    var tip = document.getElementById("goaltip");
+
+    var TASKS = ["PickCube", "PegInsertionSide", "StackCube"];
+    // [mean, std] per task, exactly as Table I reports them.
+    var ROWS = [
+      { m: "Cosmos 3 Edge",             r: "RGB video",        fam: "prior",
+        v: [[141.3, 89.3], [348.2, 214.9], [87.6, 61.6]] },
+      { m: "TesserAct, adapted",        r: "RGB-DN video",     fam: "prior",
+        v: [[456.9, 158.3], [76.9, 38.2], [224.8, 89.0]] },
+      { m: "Track2Act, adapted",        r: "2D tracks",        fam: "prior",
+        v: [[167.5, 57.0], [256.2, 33.0], [143.0, 89.0]] },
+      { m: "Structured-4D, released",   r: "4D geometry",      fam: "prior",
+        v: [[192.2, 82.9], [373.5, 115.3], [31.0, 19.3]] },
+      { m: "Structured-4D, adapted",    r: "4D geometry",      fam: "prior",
+        v: [[166.4, 61.3], [361.4, 83.3], [36.3, 20.3]] },
+      { m: "TraceGen + Rigid (K=1)",    r: "3D tracks",        fam: "k1",
+        v: [[41.1, 21.7], [42.6, 31.6], [28.9, 38.7]] },
+      { m: "TraceGen + Rigid (K=4)",    r: "3D tracks",        fam: "k4",
+        v: [[37.2, 19.3], [40.8, 33.0], [25.4, 38.8]] },
+      { m: "Entity-Level Goal Readout", r: "3D tracks + goal", fam: "ours",
+        v: [[31.5, 20.1], [29.4, 16.4], [12.8, 34.0]] }
+    ];
+    var FAM = { prior: "#579a3f", k1: "#2e9bb5", k4: "#2a5f9e", ours: "#d9602b" };
+
+    var W = 1000, ML = 214, MR = 10, MT = 34, GAP = 18, ROWH = 30, BARH = 13;
+    var H = MT + ROWS.length * ROWH + 16;
+    var PW = (W - ML - MR - GAP * (TASKS.length - 1)) / TASKS.length;
+    var MAXV = 640;                     // shared scale, covers the widest mean + std (615.2)
+    var NS = "http://www.w3.org/2000/svg";
+
+    function el(name, attrs) {
+      var e = document.createElementNS(NS, name);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    }
+
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+      "aria-label": "Terminal goal position error in millimetres by method and task; lower is better" });
+
+    TASKS.forEach(function (task, ti) {
+      var x0 = ML + ti * (PW + GAP);
+      var th = el("text", { class: "panelhead", x: x0, y: MT - 14 });
+      th.textContent = task;
+      svg.appendChild(th);
+      svg.appendChild(el("line", { class: "rowrule", x1: x0, x2: x0 + PW, y1: MT - 6, y2: MT - 6 }));
+    });
+
+    ROWS.forEach(function (row, ri) {
+      var y = MT + ri * ROWH;
+      var lab = el("text", { class: "rowlab" + (row.fam === "prior" ? " dim" : ""),
+        x: ML - 14, y: y + BARH + 2, "text-anchor": "end" });
+      lab.textContent = row.m;
+      if (row.fam === "ours") lab.setAttribute("font-weight", "600");
+      lab.setAttribute("fill", row.fam === "prior" ? "var(--muted)" : FAM[row.fam]);
+      svg.appendChild(lab);
+
+      TASKS.forEach(function (task, ti) {
+        var x0 = ML + ti * (PW + GAP);
+        var mean = row.v[ti][0], sd = row.v[ti][1];
+        var sx = function (val) { return x0 + (val / MAXV) * PW * 0.82; };
+        var w = Math.max(2, sx(mean) - x0);
+        var cy = y + 2 + BARH / 2;
+
+        var bar = el("rect", { class: "bar", x: x0, y: y + 2, width: w.toFixed(1),
+          height: BARH, rx: 3, fill: FAM[row.fam] });
+        bar.addEventListener("mouseenter", function (e) { showTip(e, row, task, mean, sd); });
+        bar.addEventListener("mousemove", function (e) { showTip(e, row, task, mean, sd); });
+        bar.addEventListener("mouseleave", function () { if (tip) tip.classList.remove("on"); });
+        svg.appendChild(bar);
+
+        // +-1 SD. The error is a distance, so the low end is clamped at zero; on
+        // StackCube several methods have an SD larger than their mean, which is the
+        // heavy tail the note under the chart points at.
+        var lo = sx(Math.max(0, mean - sd)), hi = sx(mean + sd);
+        var g = el("g", { class: "sd" });
+        g.appendChild(el("line", { x1: lo, x2: hi, y1: cy, y2: cy }));
+        g.appendChild(el("line", { x1: lo, x2: lo, y1: cy - 4, y2: cy + 4 }));
+        g.appendChild(el("line", { x1: hi, x2: hi, y1: cy - 4, y2: cy + 4 }));
+        svg.appendChild(g);
+
+        var vl = el("text", { class: "vallab" + (row.fam === "ours" ? " lead" : ""),
+          x: hi + 7, y: y + BARH - 1 });
+        vl.textContent = mean.toFixed(1);
+        svg.appendChild(vl);
+      });
+    });
+
+    host.insertBefore(svg, tip);
+
+    function showTip(e, row, task, mean, sd) {
+      if (!tip) return;
+      var box = host.getBoundingClientRect();
+      tip.innerHTML = "";
+      var b = document.createElement("b");
+      b.textContent = row.m;
+      var meta = document.createElement("span");
+      meta.className = "v";
+      meta.textContent = task + " " + mean.toFixed(1) + " ± " + sd.toFixed(1)
+                       + " mm · " + row.r;
+      tip.appendChild(b); tip.appendChild(meta);
+      tip.classList.add("on");
+      var x = e.clientX - box.left, ty = e.clientY - box.top;
+      tip.style.left = Math.min(Math.max(8, x + 14), box.width - tip.offsetWidth - 8) + "px";
+      tip.style.top = Math.max(4, ty - tip.offsetHeight - 12) + "px";
+    }
+
+    var bC = document.getElementById("gview-chart"),
+        bT = document.getElementById("gview-table"),
+        table = document.getElementById("goaltable");
+    function setView(chart) {
+      host.hidden = !chart;
+      table.hidden = chart;
+      bC.setAttribute("aria-pressed", chart ? "true" : "false");
+      bT.setAttribute("aria-pressed", chart ? "false" : "true");
+    }
+    bC.addEventListener("click", function () { setView(true); });
+    bT.addEventListener("click", function () { setView(false); });
+  })();
+
+  /* ---------------------------------------------------------- planning cost
+     Table III has four facts per planner: parameters, peak memory, time for one
+     planning call, and what that call returns. A bar of time alone answers one of
+     them, so this is a scatter: time across, parameters up, peak memory as the area
+     of the mark, the output in the tooltip. Both axes are logarithmic -- time spans
+     230x, parameters 19x -- with decade ticks, and every mark is directly labelled,
+     so identity never rests on colour.
+
+     The scale deliberately runs wider than the data on both axes: a mark is a disc,
+     not a point, and at the extremes its radius would otherwise cross the plot edge.
+     Labels are offset by each mark's own radius, and the two rightmost flip to the
+     left, so no label ever sits on its own disc. */
+  (function () {
+    var host = document.getElementById("costplot");
+    if (!host) return;
+    var tip = document.getElementById("costtip");
+
+    // t = seconds per planning call, pm = parameters in millions, gb = peak memory
+    var ROWS = [
+      { m: "Cosmos 3 Edge", t: 35.63, sd: 0,   pm: 9130,  gb: 19.33, o: "81 RGB frames",    fam: "video" },
+      { m: "TesserAct",     t: 292.0, sd: 4.9, pm: 5700,  gb: 16.22, o: "49 RGB-DN frames", fam: "video", flip: true },
+      { m: "Structured-4D", t: 4.45,  sd: 0,   pm: 1100,  gb: 5.71,  o: "4D point cloud",   fam: "geom" },
+      { m: "Track2Act",     t: 3.80,  sd: 0,   pm: 469,   gb: 1.91,  o: "400 2D tracks",    fam: "geom", below: true },
+      { m: "Ours",          t: 1.27,  sd: 0,   pm: 677.6, gb: 5.60,  o: "3D traces + goal", fam: "ours", ours: true }
+    ];
+
+    var W = 1000, H = 430, ML = 92, MR = 96, MT = 34, MB = 58;
+    var PW = W - ML - MR, PH = H - MT - MB;
+    var XLO = 0.8, XHI = 600, YLO = 300, YHI = 15000;
+    var NS = "http://www.w3.org/2000/svg";
+
+    function el(name, attrs) {
+      var e = document.createElementNS(NS, name);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      return e;
+    }
+    function lg(v) { return Math.log(v) / Math.LN10; }
+    function X(v) { return ML + (lg(v) - lg(XLO)) / (lg(XHI) - lg(XLO)) * PW; }
+    function Y(v) { return MT + PH - (lg(v) - lg(YLO)) / (lg(YHI) - lg(YLO)) * PH; }
+    function R(gb) { return 8 + Math.sqrt(gb) * 4.0; }
+    function params(pm) {
+      if (pm >= 1000) { var b = pm / 1000; return (b % 1 ? b.toFixed(1) : b.toFixed(0)) + "B"; }
+      return Math.round(pm) + "M";
+    }
+
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+      "aria-label": "Planning time against parameter count for five planners; mark area is peak memory" });
+
+    [1, 10, 100].forEach(function (v) {
+      svg.appendChild(el("line", { class: "gridline", x1: X(v), x2: X(v), y1: MT, y2: MT + PH }));
+      var t = el("text", { class: "axis", x: X(v), y: MT + PH + 21, "text-anchor": "middle" });
+      t.textContent = v + " s";
+      svg.appendChild(t);
+    });
+    [500, 1000, 5000, 10000].forEach(function (v) {
+      svg.appendChild(el("line", { class: "gridline", x1: ML, x2: ML + PW, y1: Y(v), y2: Y(v) }));
+      var t = el("text", { class: "axis", x: ML - 12, y: Y(v) + 4, "text-anchor": "end" });
+      t.textContent = params(v);
+      svg.appendChild(t);
+    });
+
+    var xt = el("text", { class: "axistitle", x: ML + PW / 2, y: MT + PH + 44, "text-anchor": "middle" });
+    xt.textContent = "time for one planning call";
+    svg.appendChild(xt);
+    var yt = el("text", { class: "axistitle", x: -(MT + PH / 2), y: 20, transform: "rotate(-90)",
+      "text-anchor": "middle" });
+    yt.textContent = "parameters";
+    svg.appendChild(yt);
+
+    ROWS.forEach(function (row) {
+      var cx = X(row.t), cy = Y(row.pm), r = R(row.gb);
+      // Colour says what the planner predicts: pixels, geometry, or a goal.
+      var col = { video: "#579a3f", geom: "#2e9bb5", ours: "#d9602b" }[row.fam];
+
+      if (row.ours) {
+        svg.appendChild(el("circle", { cx: cx.toFixed(1), cy: cy.toFixed(1), r: (r + 6).toFixed(1),
+          fill: "none", stroke: col, "stroke-width": 1, "stroke-opacity": .35 }));
+      }
+      var c = el("circle", { class: "bar", cx: cx.toFixed(1), cy: cy.toFixed(1), r: r.toFixed(1),
+        fill: col, "fill-opacity": row.ours ? .92 : .5, stroke: col, "stroke-width": 1.8 });
+      c.addEventListener("mouseenter", function (e) { showTip(e, row); });
+      c.addEventListener("mousemove", function (e) { showTip(e, row); });
+      c.addEventListener("mouseleave", function () { if (tip) tip.classList.remove("on"); });
+      svg.appendChild(c);
+
+      // Clear of the disc by its own radius, and flipped where the plot edge is near.
+      var lx = row.flip ? cx - r - 12 : cx + r + 12;
+      var ly = row.below ? cy + 16 : cy - 4;
+      var anchor = row.flip ? "end" : "start";
+
+      var lab = el("text", { class: "marklab", x: lx.toFixed(1), y: ly.toFixed(1), "text-anchor": anchor });
+      lab.textContent = row.m;
+      lab.setAttribute("fill", row.ours ? col : "var(--ink)");
+      if (row.ours) lab.setAttribute("font-weight", "600");
+      svg.appendChild(lab);
+
+      var sub = el("text", { class: "marksub", x: lx.toFixed(1), y: (ly + 16).toFixed(1), "text-anchor": anchor });
+      sub.textContent = row.t.toFixed(2) + " s \u00b7 " + params(row.pm) + " \u00b7 " + row.gb.toFixed(2) + " GB";
+      svg.appendChild(sub);
+    });
+
+    host.insertBefore(svg, tip);
+
+    function showTip(e, row) {
+      if (!tip) return;
+      var box = host.getBoundingClientRect();
+      tip.innerHTML = "";
+      var b = document.createElement("b");
+      b.textContent = row.m;
+      var v = document.createElement("span");
+      v.className = "v";
+      v.textContent = row.t.toFixed(2) + (row.sd ? " \u00b1 " + row.sd.toFixed(1) : "") + " s per plan"
+                    + "  \u00b7  " + params(row.pm) + " params"
+                    + "  \u00b7  " + row.gb.toFixed(2) + " GB peak"
+                    + "  \u00b7  returns " + row.o;
+      tip.appendChild(b); tip.appendChild(v);
+      tip.classList.add("on");
+      var px = e.clientX - box.left, py = e.clientY - box.top;
+      tip.style.left = Math.min(Math.max(8, px + 14), box.width - tip.offsetWidth - 8) + "px";
+      tip.style.top = Math.max(4, py - tip.offsetHeight - 12) + "px";
+    }
+
+    var bC = document.getElementById("cview-chart"),
+        bT = document.getElementById("cview-table"),
+        table = document.getElementById("costtable");
+    function setView(chart) {
+      host.hidden = !chart;
+      table.hidden = chart;
+      bC.setAttribute("aria-pressed", chart ? "true" : "false");
+      bT.setAttribute("aria-pressed", chart ? "false" : "true");
+    }
+    bC.addEventListener("click", function () { setView(true); });
+    bT.addEventListener("click", function () { setView(false); });
+  })();
+
+  /* ---------------------------------------------------------- 3D viewers
+     One engine, two instances reading the same episode files: a voxel-downsampled
+     frame-0 point cloud, the predicted and executed traces of the query points that
+     actually move, and the goal frames. The instances differ only in which layers
+     start on and which tasks they offer. Plain canvas 2D -- a few thousand points
+     painted back to front is cheaper than WebGL and carries no dependency.
+
+     Camera: azimuth/elevation orbit about the scene centre, fixed focal length,
+     perspective divide. World frame is Z-up. */
+
+  var LAYER_DEFS = [
+    { key: "cloud",   label: "Observed scene", color: "#8f9bb3",
+      hint: "Frame-0 depth unprojected to world, cropped to the workspace this episode uses" },
+    { key: "objmove", label: "Object & gripper move", color: "#9fb3d0",
+      hint: "The object, its fixture and the robot links carried by their true poses at each step" },
+    { key: "pred",    label: "Predicted traces", color: "#f2b043",
+      hint: "Query points on the object, as the planner predicted them from the first frame alone" },
+    { key: "exec",    label: "Executed traces", color: "#43b0ef",
+      hint: "The same points as polylines; the moving geometry above says it more directly" },
+    { key: "goalP",   label: "Predicted goal", color: "#f0703a",
+      hint: "The SE(3) pose read out of the prediction; this is what the executor consumes" },
+    { key: "goalT",   label: "True goal", color: "#dcc6a3",
+      hint: "Where the object actually had to end up (dashed)" }
+  ];
+
+  /* Mean terminal goal position error in mm, Table I. These are per-task means over
+     the evaluation set, not per-episode predictions -- the export carries a predicted
+     goal for our method only. So each method is drawn as a ring of its mean radius
+     about the true goal, which is what the table actually measures. */
+  var METHODS = [
+    { key: "ours",  label: "Ours",                    color: "#f0703a",
+      mm: { PickCube: 31.5,  PegInsertionSide: 29.4,  StackCube: 12.8 } },
+    { key: "trace", label: "TraceGen + Rigid (K=4)",  color: "#4a90d9",
+      mm: { PickCube: 37.2,  PegInsertionSide: 40.8,  StackCube: 25.4 } },
+    { key: "t2a",   label: "Track2Act",               color: "#3fc0c9",
+      mm: { PickCube: 167.5, PegInsertionSide: 256.2, StackCube: 143.0 } },
+    { key: "s4d",   label: "Structured-4D",           color: "#9fb0c6",
+      mm: { PickCube: 166.4, PegInsertionSide: 361.4, StackCube: 36.3 } }
+  ];
+
+  var VIEWER_OPTS = {
+    traces: {
+      layers: { cloud: true, objmove: true, pred: true, exec: false, goalP: true, goalT: true },
+      methods: false,
+      tasks: null,                      // every task
+      zoom: 3.2
+    },
+    goals: {
+      layers: { cloud: true, objmove: true, pred: false, exec: false, goalP: true, goalT: true },
+      methods: { ours: true, trace: true, t2a: true, s4d: false },
+      // Table I reports a terminal goal position error for these three only.
+      tasks: ["PickCube", "PegInsertionSide", "StackCube"],
+      zoom: 1.5
+    },
+    demo: {
+      layers: { cloud: true, objmove: true, pred: true, exec: false, goalP: true, goalT: false },
+      methods: false,
+      // The two tasks the demo ships with; three exported frames each.
+      tasks: ["PegInsertionSide", "StackCube"],
+      zoom: 2.6,
+      numbers: true
+    }
+  };
+
+  var EP_LABEL = { clean: "Clean", div: "Diverging" };
+
+  /* Each frame gets one line saying what makes it worth looking at. The diverging
+     frames need it most: a 42 mm goal error next to a 90 mm trace-end gap reads as a
+     mistake until you know that the first number is the one the executor consumes. */
+  var EP_NOTE = {
+    clean: "A typical episode: the planner's goal lands near this task's median error.",
+    div: "The predicted trace ends far from where the object goes, yet the goal read out of it stays "
+       + "close enough to drive the rollout \u2014 which still succeeds."
+  };
+
+  function makeViewer(root, opts) {
+    var wrap = root.querySelector(".canvas-wrap"),
+        cv = root.querySelector("canvas"),
+        taskHost = root.querySelector('[data-role="tasks"]'),
+        epHost = root.querySelector('[data-role="episodes"]'),
+        rngT = root.querySelector('[data-role="time"]'),
+        btnPlay = root.querySelector('[data-role="play"]'),
+        btnReset = root.querySelector('[data-role="reset"]'),
+        layerHost = root.querySelector('[data-role="layers"]');
+    if (!cv || !cv.getContext) return;
+
+    var ctx = cv.getContext("2d");
+    var HOME = { az: -0.78, el: 0.42, dist: 0.7 };
+    var cam = { az: HOME.az, el: HOME.el, dist: HOME.dist };
+    var on = {}, mOn = {}, data = null, centre = [0, 0, 0], tIdx = 0;
+    var playing = false, timer = 0, dpr = 1, task = null;
+    var byTask = {}, taskNames = [], epButtons = [];
+    var readout = root.querySelector('[data-role="readout"]'),
+        methodHost = root.querySelector('[data-role="methods"]');
+
+    LAYER_DEFS.forEach(function (L) {
+      on[L.key] = !!opts.layers[L.key];
+      var lab = document.createElement("label");
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = on[L.key];
+      cb.addEventListener("change", function () { on[L.key] = cb.checked; draw(); });
+      var sw = document.createElement("span");
+      sw.className = "swatch";
+      sw.style.background = L.color;
+      var tx = document.createElement("span");
+      tx.textContent = L.label;
+      if (L.hint) lab.title = L.hint;
+      lab.appendChild(cb); lab.appendChild(sw); lab.appendChild(tx);
+      if (layerHost) layerHost.appendChild(lab);
+    });
+
+    if (opts.methods && methodHost) {
+      METHODS.forEach(function (M) {
+        mOn[M.key] = !!opts.methods[M.key];
+        var lab = document.createElement("label");
+        var cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = mOn[M.key];
+        cb.addEventListener("change", function () { mOn[M.key] = cb.checked; draw(); fillReadout(); });
+        var sw = document.createElement("span");
+        sw.className = "swatch ring";
+        sw.style.borderColor = M.color;
+        var tx = document.createElement("span");
+        tx.textContent = M.label;
+        lab.appendChild(cb); lab.appendChild(sw); lab.appendChild(tx);
+        methodHost.appendChild(lab);
+      });
+    }
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var r = wrap.getBoundingClientRect();
+      cv.width = Math.max(1, Math.round(r.width * dpr));
+      cv.height = Math.max(1, Math.round(r.height * dpr));
+      draw();
+    }
+
+    function project(p) {
+      var x = p[0] - centre[0], y = p[1] - centre[1], z = p[2] - centre[2];
+      var ca = Math.cos(cam.az), sa = Math.sin(cam.az);
+      var xr = ca * x - sa * y, yr = sa * x + ca * y;
+      var ce = Math.cos(cam.el), se = Math.sin(cam.el);
+      var yr2 = ce * yr - se * z, zr = se * yr + ce * z;
+      var depth = yr2 + cam.dist;
+      if (depth < 0.05) return null;
+      var f = cv.height * 0.86;
+      return [cv.width / 2 + (xr * f) / depth, cv.height / 2 - (zr * f) / depth, depth];
+    }
+
+    function drawCloud() {
+      var c = data.cloud;
+      if (!c) return;
+      // Everything that moves leads the array, in contiguous blocks: the object, its
+      // fixture, then the robot links the gripper is made of. Each block carries its
+      // own true pose for this step, so the arm travels with the object instead of
+      // hanging where it started. The static scene follows and is left alone.
+      var movers = (on.objmove && c.movers) ? c.movers : [];
+      var mi = 0;
+      var nn = c.c.length, order = new Array(nn), pr = new Array(nn);
+      for (var i = 0; i < nn; i++) {
+        var x = c.p[i * 3] / 1000, y = c.p[i * 3 + 1] / 1000, z = c.p[i * 3 + 2] / 1000;
+        while (mi < movers.length && i >= movers[mi].from + movers[mi].count) mi++;
+        if (mi < movers.length && i >= movers[mi].from) {
+          var Ms = movers[mi].M, M = Ms[Math.min(tIdx, Ms.length - 1)];
+          var nx = M[0][0] * x + M[0][1] * y + M[0][2] * z + M[0][3];
+          var ny = M[1][0] * x + M[1][1] * y + M[1][2] * z + M[1][3];
+          var nz = M[2][0] * x + M[2][1] * y + M[2][2] * z + M[2][3];
+          x = nx; y = ny; z = nz;
+        }
+        pr[i] = project([x, y, z]);
+        order[i] = i;
+      }
+      order.sort(function (a, b) {
+        return (pr[b] ? pr[b][2] : 1e9) - (pr[a] ? pr[a][2] : 1e9);
+      });
+      for (var k = 0; k < nn; k++) {
+        var j = order[k], q = pr[j];
+        if (!q) continue;
+        var col = c.c[j];
+        // Lift the scene off the ground without letting it outshine the traces.
+        var r = (col >> 16) & 255, g = (col >> 8) & 255, b = col & 255;
+        ctx.fillStyle = "rgb(" + ((26 + r * 0.93) | 0) + "," +
+                                 ((30 + g * 0.94) | 0) + "," +
+                                 ((38 + b * 0.96) | 0) + ")";
+        var sz = Math.max(1.05 * dpr, (2.6 * dpr) / Math.max(0.3, q[2] * 2.6));
+        ctx.fillRect(q[0] - sz, q[1] - sz, sz * 2, sz * 2);
+      }
+    }
+
+    function ramp(u, warm) {
+      // Amber for predicted, cyan for executed; both dark to light in time, the same
+      // encoding the rendered clips use.
+      return warm
+        ? "rgb(" + ((122 + 120 * u) | 0) + "," + ((62 + 114 * u) | 0) + "," + ((24 + 43 * u) | 0) + ")"
+        : "rgb(" + ((18 + 49 * u) | 0) + "," + ((84 + 92 * u) | 0) + "," + ((126 + 113 * u) | 0) + ")";
+    }
+
+    function drawTraces(traces, warm, upTo) {
+      ctx.lineWidth = Math.max(1.2, 1.8 * dpr);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      for (var i = 0; i < traces.length; i++) {
+        var tr = traces[i], last = Math.min(upTo, tr.length - 1);
+        for (var st = 0; st < last; st++) {
+          var a = project(tr[st]), b = project(tr[st + 1]);
+          if (!a || !b) continue;
+          ctx.strokeStyle = ramp(st / Math.max(1, tr.length - 1), warm);
+          ctx.globalAlpha = 0.72;
+          ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+        }
+        var head = project(tr[last]);
+        if (head) {
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = warm ? "#f2b043" : "#43b0ef";
+          ctx.beginPath(); ctx.arc(head[0], head[1], 2.2 * dpr, 0, 6.2832); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawFrame(T, dashed, scale) {
+      if (!T) return;
+      var o = [T[0][3], T[1][3], T[2][3]];
+      // X orange, Y green, Z blue -- the usual red X would be the one colour this
+      // page does not use.
+      var cols = ["#f5924e", "#3fce8b", "#4f95f0"];
+      ctx.lineWidth = Math.max(1.8, 2.6 * dpr);
+      ctx.setLineDash(dashed ? [5 * dpr, 4 * dpr] : []);
+      for (var a = 0; a < 3; a++) {
+        var tip = [o[0] + T[0][a] * scale, o[1] + T[1][a] * scale, o[2] + T[2][a] * scale];
+        var p0 = project(o), p1 = project(tip);
+        if (!p0 || !p1) continue;
+        ctx.strokeStyle = cols[a];
+        ctx.globalAlpha = dashed ? 0.62 : 1;
+        ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+
+    /* One ring per method, centred on the true goal, radius = that method's mean
+       terminal goal position error for this task. Rings rather than filled spheres:
+       four nested translucent balls occlude each other and the scene, while rings
+       can be read against one another and labelled. */
+    function drawRings() {
+      if (!opts.methods || !data.goal_true || !task) return;
+      var o = [data.goal_true[0][3], data.goal_true[1][3], data.goal_true[2][3]];
+      var p = project(o);
+      if (!p) return;
+      var live = METHODS.filter(function (M) { return mOn[M.key] && M.mm[task] != null; });
+      live.sort(function (a, b) { return b.mm[task] - a.mm[task]; });   // widest first
+      live.forEach(function (M) {
+        var radius = M.mm[task] / 1000;
+        var rpx = Math.max(3, (radius * cv.height * 0.86) / p[2]);
+        ctx.strokeStyle = M.color;
+        ctx.globalAlpha = 0.85;
+        ctx.lineWidth = 1.6 * dpr;
+        ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(p[0], p[1], rpx, 0, 6.2832); ctx.stroke();
+        ctx.globalAlpha = 0.10;
+        ctx.fillStyle = M.color;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+    }
+
+    function draw() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      if (!data) return;
+      if (on.cloud) drawCloud();
+      if (on.exec) drawTraces(data.exec, false, tIdx);
+      if (on.pred) drawTraces(data.pred, true, tIdx);
+      drawRings();
+      if (on.goalT) drawFrame(data.goal_true, true, 0.05);
+      if (on.goalP) drawFrame(data.goal_pred, false, 0.05);
+    }
+
+    function fit(d) {
+      // Frame on what actually happened: the executed traces plus the goal frames. A
+      // badly diverging prediction may then run off the edge, which is the point of
+      // those episodes -- fitting it too would shrink a 400 mm miss and its whole
+      // scene down to nothing.
+      var lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+      function grow(p) {
+        for (var a = 0; a < 3; a++) {
+          if (p[a] < lo[a]) lo[a] = p[a];
+          if (p[a] > hi[a]) hi[a] = p[a];
+        }
+      }
+      d.exec.forEach(function (tr) { tr.forEach(grow); });
+      [d.goal_true, d.goal_pred, d.object_t0].forEach(function (T) {
+        if (T) grow([T[0][3], T[1][3], T[2][3]]);
+      });
+      centre = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
+      var r = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2;
+      if (!isFinite(r) || r <= 0) r = 0.12;
+      HOME.dist = Math.max(0.16, Math.min(0.95, r * (opts.zoom || 3.2)));
+      cam.dist = HOME.dist;
+    }
+
+    function setData(d) {
+      data = d;
+      fit(d);
+      tIdx = d.times.length - 1;
+      if (rngT) {
+        rngT.max = String(d.times.length - 1);
+        rngT.value = String(tIdx);
+      }
+      fillReadout();
+      if (opts.numbers) fillNumbers();
+      draw();
+    }
+
+    /* The executable goal, expressed the way the executor receives it: the predicted
+       goal taken into the object's own frame at t = 0, as translation plus a unit
+       quaternion. Seven numbers, and nothing else crosses the interface. */
+    function relativeGoal(T0, Tg) {
+      var R0 = [[T0[0][0], T0[0][1], T0[0][2]],
+                [T0[1][0], T0[1][1], T0[1][2]],
+                [T0[2][0], T0[2][1], T0[2][2]]];
+      var t0 = [T0[0][3], T0[1][3], T0[2][3]];
+      var tg = [Tg[0][3], Tg[1][3], Tg[2][3]];
+      var d = [tg[0] - t0[0], tg[1] - t0[1], tg[2] - t0[2]];
+      // R0 transposed times d, and R0 transposed times Rg
+      var t = [0, 1, 2].map(function (i) {
+        return R0[0][i] * d[0] + R0[1][i] * d[1] + R0[2][i] * d[2];
+      });
+      var R = [0, 1, 2].map(function (i) {
+        return [0, 1, 2].map(function (j) {
+          return R0[0][i] * Tg[0][j] + R0[1][i] * Tg[1][j] + R0[2][i] * Tg[2][j];
+        });
+      });
+      // Rotation matrix to quaternion, xyzw, via the largest-diagonal branch so the
+      // divisor never approaches zero.
+      var tr = R[0][0] + R[1][1] + R[2][2], q;
+      if (tr > 0) {
+        var w4 = Math.sqrt(1 + tr) * 2;
+        q = [(R[2][1] - R[1][2]) / w4, (R[0][2] - R[2][0]) / w4, (R[1][0] - R[0][1]) / w4, w4 / 4];
+      } else if (R[0][0] > R[1][1] && R[0][0] > R[2][2]) {
+        var x4 = Math.sqrt(1 + R[0][0] - R[1][1] - R[2][2]) * 2;
+        q = [x4 / 4, (R[0][1] + R[1][0]) / x4, (R[0][2] + R[2][0]) / x4, (R[2][1] - R[1][2]) / x4];
+      } else if (R[1][1] > R[2][2]) {
+        var y4 = Math.sqrt(1 + R[1][1] - R[0][0] - R[2][2]) * 2;
+        q = [(R[0][1] + R[1][0]) / y4, y4 / 4, (R[1][2] + R[2][1]) / y4, (R[0][2] - R[2][0]) / y4];
+      } else {
+        var z4 = Math.sqrt(1 + R[2][2] - R[0][0] - R[1][1]) * 2;
+        q = [(R[0][2] + R[2][0]) / z4, (R[1][2] + R[2][1]) / z4, z4 / 4, (R[1][0] - R[0][1]) / z4];
+      }
+      var nq = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+      return { t: t, q: q.map(function (v) { return v / nq; }) };
+    }
+
+    function fillNumbers() {
+      var host = (root.closest("section") || root).querySelector('[data-role="goalnums"]');
+      if (!host || !data || !data.object_t0 || !data.goal_pred) return;
+      var g = relativeGoal(data.object_t0, data.goal_pred);
+      host.innerHTML = "";
+      var rows = [
+        ["t x", g.t[0].toFixed(4) + " m"],
+        ["t y", g.t[1].toFixed(4) + " m"],
+        ["t z", g.t[2].toFixed(4) + " m"],
+        ["q x", g.q[0].toFixed(4)],
+        ["q y", g.q[1].toFixed(4)],
+        ["q z", g.q[2].toFixed(4)],
+        ["q w", g.q[3].toFixed(4)]
+      ];
+      rows.forEach(function (r) {
+        var dt = document.createElement("dt"); dt.textContent = r[0];
+        var dd = document.createElement("dd"); dd.textContent = r[1];
+        host.appendChild(dt); host.appendChild(dd);
+      });
+    }
+
+    /* The number this section is about, on the canvas rather than in the side list. */
+    function fillReadout() {
+      if (!readout) return;
+      readout.innerHTML = "";
+      if (data && data.goal_error_mm != null) {
+        var lab = document.createElement("span");
+        lab.className = "lab";
+        lab.textContent = "goal position error · this episode";
+        var num = document.createElement("span");
+        num.className = "num";
+        num.textContent = data.goal_error_mm.toFixed(1);
+        var u = document.createElement("i");
+        u.textContent = "mm";
+        num.appendChild(u);
+        readout.appendChild(lab);
+        readout.appendChild(num);
+
+        if (data.trace_end_gap_mm != null) {
+          var l2 = document.createElement("span");
+          l2.className = "lab sep";
+          l2.textContent = "predicted trace ends off by";
+          var n2 = document.createElement("span");
+          n2.className = "num small";
+          n2.textContent = data.trace_end_gap_mm.toFixed(0);
+          var u2 = document.createElement("i");
+          u2.textContent = "mm";
+          n2.appendChild(u2);
+          readout.appendChild(l2);
+          readout.appendChild(n2);
+        }
+      }
+      if (opts.methods && task) {
+        var head = document.createElement("span");
+        head.className = "lab sep";
+        head.textContent = "mean error by method · " + task;
+        readout.appendChild(head);
+        METHODS.forEach(function (M) {
+          if (!mOn[M.key] || M.mm[task] == null) return;
+          var row = document.createElement("span");
+          row.className = "mrow";
+          var d0 = document.createElement("i");
+          d0.className = "ring";
+          d0.style.borderColor = M.color;
+          var nm = document.createElement("b");
+          nm.textContent = M.label;
+          var vv = document.createElement("u");
+          vv.textContent = M.mm[task].toFixed(1) + " mm";
+          row.appendChild(d0); row.appendChild(nm); row.appendChild(vv);
+          readout.appendChild(row);
+        });
+      }
+    }
+
+    function fail(msg) {
+      if (wrap.querySelector(".v-err")) return;
+      var e = document.createElement("div");
+      e.className = "v-err";
+      e.textContent = msg;
+      wrap.appendChild(e);
+    }
+
+    function load(file) {
+      fetch(file).then(function (r) { return r.json(); }).then(setData)
+                 .catch(function () { fail("episode data unavailable"); });
+    }
+
+    function selectEpisode(i) {
+      epButtons.forEach(function (b, j) { b.setAttribute("aria-pressed", j === i ? "true" : "false"); });
+      setEpNote(epButtons[i].dataset.cat);
+      load(epButtons[i].dataset.file);
+    }
+
+    function selectTask(name) {
+      task = name;
+      Array.prototype.forEach.call(taskHost.children, function (b) {
+        b.setAttribute("aria-pressed", b.textContent === name ? "true" : "false");
+      });
+      epHost.innerHTML = "";
+      epButtons = [];
+      var seen = {};
+      byTask[name].forEach(function (ep, i) {
+        var base = EP_LABEL[ep.category] || ep.category;
+        seen[base] = (seen[base] || 0) + 1;
+        var b = document.createElement("button");
+        b.type = "button";
+        b.dataset.file = ep.file;
+        b.dataset.cat = ep.category;
+        b.textContent = byTask[name].filter(function (e) { return e.category === ep.category; }).length > 1
+          ? base + " " + seen[base] : base;
+        b.title = ep.episode + (ep.goal_error_mm != null ? " · goal error " + ep.goal_error_mm + " mm" : "");
+        b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+        b.addEventListener("click", function () { selectEpisode(i); });
+        epHost.appendChild(b);
+        epButtons.push(b);
+      });
+      if (epButtons.length) selectEpisode(0);
+    }
+
+    function setEpNote(cat) {
+      var host = root.querySelector('[data-role="epnote"]');
+      if (host) host.textContent = EP_NOTE[cat] || "";
+    }
+
+    var dragging = false, lx = 0, ly = 0;
+    wrap.addEventListener("pointerdown", function (e) {
+      dragging = true; lx = e.clientX; ly = e.clientY; wrap.setPointerCapture(e.pointerId);
+    });
+    wrap.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      cam.az -= (e.clientX - lx) * 0.0075;
+      cam.el = Math.max(-1.35, Math.min(1.45, cam.el + (e.clientY - ly) * 0.0065));
+      lx = e.clientX; ly = e.clientY;
+      draw();
+    });
+    ["pointerup", "pointercancel"].forEach(function (ev) {
+      wrap.addEventListener(ev, function () { dragging = false; });
+    });
+    wrap.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      cam.dist = Math.max(0.16, Math.min(3.0, cam.dist * (e.deltaY > 0 ? 1.09 : 0.92)));
+      draw();
+    }, { passive: false });
+
+    if (rngT) rngT.addEventListener("input", function () { tIdx = +rngT.value; draw(); });
+    if (btnReset) btnReset.addEventListener("click", function () {
+      cam.az = HOME.az; cam.el = HOME.el; cam.dist = HOME.dist; draw();
+    });
+
+    function tick() {
+      if (!playing || !data) return;
+      tIdx = (tIdx + 1) % data.times.length;
+      if (rngT) rngT.value = String(tIdx);
+      draw();
+      timer = setTimeout(function () { requestAnimationFrame(tick); }, 95);
+    }
+    if (btnPlay) btnPlay.addEventListener("click", function () {
+      playing = !playing;
+      btnPlay.setAttribute("aria-pressed", playing ? "true" : "false");
+      btnPlay.textContent = playing ? "Pause" : "Play";
+      if (playing) { if (data && tIdx >= data.times.length - 1) tIdx = 0; tick(); }
+      else clearTimeout(timer);
+    });
+
+    window.addEventListener("resize", resize);
+
+    return {
+      populate: function (list) {
+        var rank = { clean: 0, div: 1 };
+        list.forEach(function (ep) {
+          if (opts.tasks && opts.tasks.indexOf(ep.task) < 0) return;
+          if (!byTask[ep.task]) { byTask[ep.task] = []; taskNames.push(ep.task); }
+          byTask[ep.task].push(ep);
+        });
+        taskNames.forEach(function (t) {
+          byTask[t].sort(function (a, b) {
+            return (rank[a.category] - rank[b.category]) || a.episode.localeCompare(b.episode);
+          });
+        });
+        taskNames.forEach(function (t) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.textContent = t;
+          b.addEventListener("click", function () { selectTask(t); });
+          taskHost.appendChild(b);
+        });
+        resize();
+        if (taskNames.length) selectTask(taskNames[0]); else fail("no episodes listed");
+      },
+      fail: function (m) { resize(); fail(m); }
+    };
+  }
+
+  var viewers = [];
+  Array.prototype.forEach.call(document.querySelectorAll("[data-viewer]"), function (root) {
+    // Contained per viewer: a panel that is missing a control should cost that one
+    // viewer, not every viewer on the page.
+    try {
+      var v = makeViewer(root, VIEWER_OPTS[root.getAttribute("data-viewer")] || VIEWER_OPTS.traces);
+      if (v) viewers.push(v);
+    } catch (err) {
+      var w = root.querySelector(".canvas-wrap");
+      if (w && !w.querySelector(".v-err")) {
+        var e = document.createElement("div");
+        e.className = "v-err";
+        e.textContent = "viewer unavailable";
+        w.appendChild(e);
+      }
+    }
+  });
+
+  if (viewers.length) {
+    fetch("static/traces.json").then(function (r) { return r.json(); }).then(function (list) {
+      // Task order follows the paper's table order.
+      var order = ["PickCube", "LiftPegUpright", "PegInsertionSide", "StackCube", "PushCube"];
+      list.sort(function (a, b) {
+        return (order.indexOf(a.task) - order.indexOf(b.task)) || a.episode.localeCompare(b.episode);
+      });
+      viewers.forEach(function (v) {
+        try { v.populate(list); } catch (err) { v.fail("could not load episodes"); }
+      });
+    }).catch(function () {
+      viewers.forEach(function (v) { v.fail("episode index unavailable"); });
+    });
+  }
+})();
+
+</script>
+</body>
+</html>

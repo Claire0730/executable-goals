@@ -1,0 +1,222 @@
+[
+ {
+  "clip": "sim_liftpeg_ep_001_pert",
+  "task": "LiftPegUpright",
+  "setting": "sim",
+  "category": "pert",
+  "category_label": "Goal perturbed by 20 mm",
+  "outcome": "success",
+  "goal_error_mm": null,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_liftpeg_ep_003",
+  "task": "LiftPegUpright",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 182.8,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_liftpeg_ep_191",
+  "task": "LiftPegUpright",
+  "setting": "sim",
+  "category": "div",
+  "category_label": "Predicted trace diverges",
+  "outcome": "success",
+  "goal_error_mm": 404.5,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_liftpeg_ep_255",
+  "task": "LiftPegUpright",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 170.8,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_peginsert_ep_009_pert",
+  "task": "PegInsertionSide",
+  "setting": "sim",
+  "category": "pert",
+  "category_label": "Goal perturbed by 20 mm",
+  "outcome": "success",
+  "goal_error_mm": null,
+  "steps": 101,
+  "fps": 20
+ },
+ {
+  "clip": "sim_peginsert_ep_050",
+  "task": "PegInsertionSide",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 4.2,
+  "steps": 101,
+  "fps": 20
+ },
+ {
+  "clip": "sim_peginsert_ep_076",
+  "task": "PegInsertionSide",
+  "setting": "sim",
+  "category": "div",
+  "category_label": "Predicted trace diverges",
+  "outcome": "success",
+  "goal_error_mm": 42.1,
+  "steps": 101,
+  "fps": 20
+ },
+ {
+  "clip": "sim_peginsert_ep_162",
+  "task": "PegInsertionSide",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 4.3,
+  "steps": 101,
+  "fps": 20
+ },
+ {
+  "clip": "sim_pickcube_ep_002_pert",
+  "task": "PickCube",
+  "setting": "sim",
+  "category": "pert",
+  "category_label": "Goal perturbed by 20 mm",
+  "outcome": "success",
+  "goal_error_mm": null,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_pickcube_ep_025",
+  "task": "PickCube",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 0.6,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_pickcube_ep_100",
+  "task": "PickCube",
+  "setting": "sim",
+  "category": "div",
+  "category_label": "Predicted trace diverges",
+  "outcome": "success",
+  "goal_error_mm": 38.0,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_pickcube_ep_133",
+  "task": "PickCube",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 0.6,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_pushcube_ep_000_pert",
+  "task": "PushCube",
+  "setting": "sim",
+  "category": "pert",
+  "category_label": "Goal perturbed by 20 mm",
+  "outcome": "success",
+  "goal_error_mm": null,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_pushcube_ep_086",
+  "task": "PushCube",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 12.6,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_pushcube_ep_095",
+  "task": "PushCube",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 11.0,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_pushcube_ep_176",
+  "task": "PushCube",
+  "setting": "sim",
+  "category": "div",
+  "category_label": "Predicted trace diverges",
+  "outcome": "success",
+  "goal_error_mm": 164.9,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_stack_ep_005_pert",
+  "task": "StackCube",
+  "setting": "sim",
+  "category": "pert",
+  "category_label": "Goal perturbed by 20 mm",
+  "outcome": "success",
+  "goal_error_mm": null,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_stack_ep_058",
+  "task": "StackCube",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 1.6,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_stack_ep_161",
+  "task": "StackCube",
+  "setting": "sim",
+  "category": "clean",
+  "category_label": "Clean success",
+  "outcome": "success",
+  "goal_error_mm": 1.6,
+  "steps": 51,
+  "fps": 20
+ },
+ {
+  "clip": "sim_stack_ep_182",
+  "task": "StackCube",
+  "setting": "sim",
+  "category": "div",
+  "category_label": "Predicted trace diverges",
+  "outcome": "success",
+  "goal_error_mm": 42.4,
+  "steps": 51,
+  "fps": 20
+ }
+]

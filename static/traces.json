@@ -1,0 +1,167 @@
+[
+ {
+  "file": "static/traces/liftpeg_ep_003.json",
+  "task": "LiftPegUpright",
+  "episode": "ep_003",
+  "category": "clean",
+  "label": "LiftPegUpright \u00b7 Clean success",
+  "goal_error_mm": 182.8,
+  "has_position_error": false,
+  "points": 6500,
+  "object_points": 1100
+ },
+ {
+  "file": "static/traces/liftpeg_ep_191.json",
+  "task": "LiftPegUpright",
+  "episode": "ep_191",
+  "category": "div",
+  "label": "LiftPegUpright \u00b7 Predicted trace diverges",
+  "goal_error_mm": 404.5,
+  "has_position_error": false,
+  "points": 6500,
+  "object_points": 1100
+ },
+ {
+  "file": "static/traces/liftpeg_ep_255.json",
+  "task": "LiftPegUpright",
+  "episode": "ep_255",
+  "category": "clean",
+  "label": "LiftPegUpright \u00b7 Clean success",
+  "goal_error_mm": 170.8,
+  "has_position_error": false,
+  "points": 6500,
+  "object_points": 1100
+ },
+ {
+  "file": "static/traces/peginsert_ep_050.json",
+  "task": "PegInsertionSide",
+  "episode": "ep_050",
+  "category": "clean",
+  "label": "PegInsertionSide \u00b7 Clean success",
+  "goal_error_mm": 4.2,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 575
+ },
+ {
+  "file": "static/traces/peginsert_ep_076.json",
+  "task": "PegInsertionSide",
+  "episode": "ep_076",
+  "category": "div",
+  "label": "PegInsertionSide \u00b7 Predicted trace diverges",
+  "goal_error_mm": 42.1,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 1100
+ },
+ {
+  "file": "static/traces/peginsert_ep_162.json",
+  "task": "PegInsertionSide",
+  "episode": "ep_162",
+  "category": "clean",
+  "label": "PegInsertionSide \u00b7 Clean success",
+  "goal_error_mm": 4.3,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 1049
+ },
+ {
+  "file": "static/traces/pickcube_ep_025.json",
+  "task": "PickCube",
+  "episode": "ep_025",
+  "category": "clean",
+  "label": "PickCube \u00b7 Clean success",
+  "goal_error_mm": 0.6,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 387
+ },
+ {
+  "file": "static/traces/pickcube_ep_100.json",
+  "task": "PickCube",
+  "episode": "ep_100",
+  "category": "div",
+  "label": "PickCube \u00b7 Predicted trace diverges",
+  "goal_error_mm": 38.0,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 457
+ },
+ {
+  "file": "static/traces/pickcube_ep_133.json",
+  "task": "PickCube",
+  "episode": "ep_133",
+  "category": "clean",
+  "label": "PickCube \u00b7 Clean success",
+  "goal_error_mm": 0.6,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 494
+ },
+ {
+  "file": "static/traces/pushcube_ep_086.json",
+  "task": "PushCube",
+  "episode": "ep_086",
+  "category": "clean",
+  "label": "PushCube \u00b7 Clean success",
+  "goal_error_mm": 12.6,
+  "has_position_error": false,
+  "points": 6500,
+  "object_points": 301
+ },
+ {
+  "file": "static/traces/pushcube_ep_095.json",
+  "task": "PushCube",
+  "episode": "ep_095",
+  "category": "clean",
+  "label": "PushCube \u00b7 Clean success",
+  "goal_error_mm": 11.0,
+  "has_position_error": false,
+  "points": 6500,
+  "object_points": 306
+ },
+ {
+  "file": "static/traces/pushcube_ep_176.json",
+  "task": "PushCube",
+  "episode": "ep_176",
+  "category": "div",
+  "label": "PushCube \u00b7 Predicted trace diverges",
+  "goal_error_mm": 164.9,
+  "has_position_error": false,
+  "points": 6500,
+  "object_points": 376
+ },
+ {
+  "file": "static/traces/stack_ep_058.json",
+  "task": "StackCube",
+  "episode": "ep_058",
+  "category": "clean",
+  "label": "StackCube \u00b7 Clean success",
+  "goal_error_mm": 1.6,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 402
+ },
+ {
+  "file": "static/traces/stack_ep_161.json",
+  "task": "StackCube",
+  "episode": "ep_161",
+  "category": "clean",
+  "label": "StackCube \u00b7 Clean success",
+  "goal_error_mm": 1.6,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 493
+ },
+ {
+  "file": "static/traces/stack_ep_182.json",
+  "task": "StackCube",
+  "episode": "ep_182",
+  "category": "div",
+  "label": "StackCube \u00b7 Predicted trace diverges",
+  "goal_error_mm": 42.4,
+  "has_position_error": true,
+  "points": 6500,
+  "object_points": 475
+ }
+]
