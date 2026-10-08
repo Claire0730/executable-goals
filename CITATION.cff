@@ -28,9 +28,8 @@ preferred-citation:
   type: article
   title: "Predicted Futures Are Not Enough: Learning Executable Goals for Robot Manipulation"
   year: 2026
-  # Once the preprint is online, add:
-  #   journal: "arXiv preprint arXiv:XXXX.XXXXX"
-  #   url: "https://arxiv.org/abs/XXXX.XXXXX"
+  journal: "arXiv preprint arXiv:2610.09309"
+  url: "https://arxiv.org/abs/2610.09309"
   authors:
     - family-names: "Chuang"
       given-names: "Tzu-Yu"

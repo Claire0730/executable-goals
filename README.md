@@ -1,6 +1,6 @@
 # Predicted Futures Are Not Enough: Learning Executable Goals for Robot Manipulation
 
-[Paper](https://arxiv.org/abs/<ARXIV_ID>) · [Project page](https://claire0730.github.io/executable-goals) · [Checkpoints](https://huggingface.co/Claire0730/executable-goals)
+[Paper](https://arxiv.org/abs/2610.09309) · [Project page](https://claire0730.github.io/executable-goals) · [Checkpoints](https://huggingface.co/Claire0730/executable-goals)
 
 A 3D trace world model predicts one future per episode; the **Entity-Level Goal Readout** turns that prediction into a
 single executable goal in SE(3), and a shared **Pose-Native Executor** runs it closed loop at 20 Hz. Five ManiSkill3
@@ -24,8 +24,6 @@ Three planner checkpoints and three executors are released; which one produced w
 Docs: [GLOSSARY](docs/GLOSSARY.md) (paper terms to code identifiers) · [REPRODUCTION](docs/REPRODUCTION.md)
 (every reported number, and how to re-run it) · [PROTOCOL](docs/PROTOCOL.md) · [MODULE_MAP](docs/MODULE_MAP.md) ·
 [KNOWN_ISSUES](docs/KNOWN_ISSUES.md)
-
-> The project page and the weights are live; `<ARXIV_ID>` is filled in once the preprint is online.
 
 ## Quick start: reproduce one row of Table II
 
